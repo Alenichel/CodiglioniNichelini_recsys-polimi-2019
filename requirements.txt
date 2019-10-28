@@ -1,4 +1,5 @@
 numpy
+panda
 scipy
 scikit-learn
 cython
