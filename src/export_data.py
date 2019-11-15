@@ -11,6 +11,6 @@ def __space_separated_list(l):
 def export_csv(data):
     with open('export.csv', 'w') as f:
         csvwriter = writer(f, delimiter=',')
-        csvwriter.writerow(['playlist_id', 'track_ids'])
+        csvwriter.writerow(('playlist_id', 'track_ids'))
         for row in data:
-            csvwriter.writerow([row[0], __space_separated_list(row[1])])
+            csvwriter.writerow((row[0], __space_separated_list(row[1])))
