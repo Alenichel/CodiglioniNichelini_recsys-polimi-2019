@@ -5,7 +5,7 @@ import scipy.sparse as sps
 
 from load_export_csv import load_csv, export_csv
 from evaluation import evaluate_algorithm
-from random_recommender import RandomRecommender
+from basic_recommenders import RandomRecommender
 
 
 if __name__ == '__main__':
