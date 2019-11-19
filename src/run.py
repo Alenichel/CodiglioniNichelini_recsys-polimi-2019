@@ -6,6 +6,7 @@ import scipy.sparse as sps
 from evaluation import evaluate_algorithm
 from load_export_csv import load_csv, export_csv
 from basic_recommenders import RandomRecommender, TopPopRecommender
+from collaborative_filtering import ItemCFKNNRecommender
 
 
 class Runner:
@@ -44,7 +45,7 @@ class Runner:
 
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument('recommender', choices=['random', 'toppop'])
+    parser.add_argument('recommender', choices=['random', 'toppop', 'cf'])
     parser.add_argument('--evaluate', '-e', action='store_true')
     args = parser.parse_args()
     recommender = None
@@ -54,4 +55,8 @@ if __name__ == '__main__':
     elif args.recommender == 'toppop':
         print('Using TopPop recommender')
         recommender = TopPopRecommender()
+    elif args.recommender == 'cf':
+        print('Using collaborative filtering')
+        recommender = ItemCFKNNRecommender()
+
     Runner().run(recommender, args.evaluate)
