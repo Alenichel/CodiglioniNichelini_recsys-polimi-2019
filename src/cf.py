@@ -21,7 +21,7 @@ class ItemCFKNNRecommender(object):
             weights.append(np.log(num_users / m_j))
         self.weights = np.array(weights)
 
-    def fit(self, urm, top_k=50, shrink=0, normalize=False, similarity='cosine'):
+    def fit(self, urm, top_k=50, shrink=100, normalize=True, similarity='cosine'):
         self.urm = urm
         similarity_object = Compute_Similarity_Python(self.urm, shrink=shrink,
                                                       topK=top_k, normalize=normalize,
