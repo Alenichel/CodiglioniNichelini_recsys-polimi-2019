@@ -82,7 +82,7 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('recommender', choices=['random', 'toppop', 'cf'])
     parser.add_argument('--evaluate', '-e', action='store_true')
-    parser.add_argument('--split', '-s', choices=['prob', 'loo'])
+    parser.add_argument('--split', '-s', choices=['prob', 'loo'], default='prob')
     parser.add_argument('--no-export', action='store_false')
     args = parser.parse_args()
     recommender = None
