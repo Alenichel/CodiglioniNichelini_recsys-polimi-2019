@@ -11,23 +11,30 @@ from collaborative_filtering import ItemCFKNNRecommender
 
 class Runner:
 
-    def __init__(self):
+    def __init__(self, recommender, evaluate=True, split='prob', export=False):
         self.urm = None
         self.target_users = None
+        self.recommender = recommender
+        self.evaluate = evaluate
+        self.split = split
+        self.export = export
 
-    def prepare_data(self, datafile='data/data_train.csv', datatargetfile='data/data_target_users_test.csv', evaluate=False):
+    def prepare_data(self, datafile='data/data_train.csv', datatargetfile='data/data_target_users_test.csv'):
         data = load_csv(datafile)
         data = [[int(row[i]) if i <= 1 else int(float(row[i])) for i in range(len(row))] for row in data]
         self.target_users = load_csv(datatargetfile)
         self.target_users = [int(x[0]) for x in self.target_users]
         users, items, ratings = map(np.array, zip(*data))
         self.urm = sps.coo_matrix((ratings, (users, items)))
-        if evaluate:
-            return self.train_test_split()
+        if self.evaluate:
+            if self.split == 'prob':
+                return self.train_test_split()
+            elif self.split == 'loo':
+                return self.train_test_loo_split()
         return self.urm, None
 
     def train_test_split(self, split=0.8):
-        print('Using stochastic splitting ({0:.2f}/{1:.2f})'.format(split, 1-split))
+        print('Using probabilistic splitting ({0:.2f}/{1:.2f})'.format(split, 1-split))
         num_interactions = self.urm.nnz
         shape = self.urm.shape
         train_mask = np.random.choice([True, False], num_interactions, p=[split, 1-split])
@@ -56,15 +63,15 @@ class Runner:
         urm_test = sps.csr_matrix(urm_test, dtype=int, shape=urm.shape)
         return urm_train, urm_test
 
-    def run(self, recommender, evaluate=False, export=False):
+    def run(self):
         print('Preparing data...')
-        urm_train, urm_test = self.prepare_data(evaluate=evaluate)
+        urm_train, urm_test = self.prepare_data()
         print('OK\nFitting...')
         recommender.fit(urm_train)
         print('OK')
-        if evaluate:
+        if self.evaluate:
             evaluate_algorithm(urm_test, recommender)
-        if export:
+        if self.export:
             print('Exporting recommendations...', end='')
             data = [(u_id, recommender.recommend(u_id, at=10)) for u_id in self.target_users]
             export_csv(('user_id', 'item_list'), data)
@@ -75,6 +82,7 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('recommender', choices=['random', 'toppop', 'cf'])
     parser.add_argument('--evaluate', '-e', action='store_true')
+    parser.add_argument('--split', '-s', choices=['prob', 'loo'])
     parser.add_argument('--no-export', action='store_false')
     args = parser.parse_args()
     recommender = None
@@ -87,4 +95,4 @@ if __name__ == '__main__':
     elif args.recommender == 'cf':
         print('Using Collaborative Filtering (item-based)')
         recommender = ItemCFKNNRecommender()
-    Runner().run(recommender, args.evaluate, args.no_export)
+    Runner(recommender, args.evaluate, args.split).run()
