@@ -6,26 +6,54 @@ import scipy.sparse as sps
 from evaluation import evaluate_algorithm
 from load_export_csv import load_csv, export_csv
 from basic_recommenders import RandomRecommender, TopPopRecommender
-from collaborative_filtering import ItemCFKNNRecommender
+from cbf import ItemCBFKNNRecommender
+from cf import ItemCFKNNRecommender
+
+
+class DataFiles:
+    TRAIN = 'data/data_train.csv'
+    TARGET_USERS_TEST = 'data/data_target_users_test.csv'
+    ICM_ASSET = 'data/data_ICM_asset.csv'
+    ICM_PRICE = 'data/data_ICM_price.csv'
+    ICM_SUBCLASS = 'data/data_ICM_sub_class.csv'
+    UCM_AGE = 'data/data_UCM_age.csv'
+    UCM_REGION = 'data/data_UCM_region.csv'
 
 
 class Runner:
 
     def __init__(self, recommender, evaluate=True, split='prob', export=False):
         self.urm = None
+        self.icm = None
         self.target_users = None
         self.recommender = recommender
         self.evaluate = evaluate
         self.split = split
         self.export = export
 
-    def prepare_data(self, datafile='data/data_train.csv', datatargetfile='data/data_target_users_test.csv'):
-        data = load_csv(datafile)
-        data = [[int(row[i]) if i <= 1 else int(float(row[i])) for i in range(len(row))] for row in data]
-        self.target_users = load_csv(datatargetfile)
-        self.target_users = [int(x[0]) for x in self.target_users]
-        users, items, ratings = map(np.array, zip(*data))
+    @staticmethod
+    def load_icm_csv(filename):
+        data = load_csv(filename)
+        data = [[int(row[i]) if i <= 1 else float(row[i]) for i in range(len(row))] for row in data]
+        items, features, values = map(np.array, zip(*data))
+        return items, features, values
+
+    def prepare_data(self):
+        urm_data = load_csv(DataFiles.TRAIN)
+        urm_data = [[int(row[i]) if i <= 1 else int(float(row[i])) for i in range(len(row))] for row in urm_data]
+        users, items, ratings = map(np.array, zip(*urm_data))
         self.urm = sps.coo_matrix((ratings, (users, items)))
+        price_icm_items, price_icm_features, price_icm_values = Runner.load_icm_csv(DataFiles.ICM_PRICE)
+        asset_icm_items, asset_icm_features, asset_icm_values = Runner.load_icm_csv(DataFiles.ICM_ASSET)
+        asset_icm_features += 1     # asset had feature number 0, now it's 1
+        subclass_icm_items, subclass_icm_features, subclass_icm_values = Runner.load_icm_csv(DataFiles.ICM_SUBCLASS)
+        subclass_icm_features += 1  # subclass numbers starts from 1, so we add 1 to make room for price and asset
+        icm_items = np.concatenate((price_icm_items, asset_icm_items, subclass_icm_items))
+        icm_features = np.concatenate((price_icm_features, asset_icm_features, subclass_icm_features))
+        icm_values = np.concatenate((price_icm_values, asset_icm_values, subclass_icm_values))
+        self.icm = sps.csr_matrix((icm_values, (icm_items, icm_features)))
+        self.target_users = load_csv(DataFiles.TARGET_USERS_TEST)
+        self.target_users = [int(x[0]) for x in self.target_users]
         if self.evaluate:
             if self.split == 'prob':
                 return self.train_test_split()
@@ -65,11 +93,14 @@ class Runner:
         urm_test.eliminate_zeros()
         return urm_train, urm_test
 
-    def run(self):
+    def run(self, requires_icm=False):
         print('Preparing data...')
         urm_train, urm_test = self.prepare_data()
         print('OK\nFitting...')
-        recommender.fit(urm_train)
+        if requires_icm:
+            recommender.fit(urm_train, self.icm)
+        else:
+            recommender.fit(urm_train)
         print('OK')
         if self.evaluate:
             evaluate_algorithm(urm_test, recommender)
@@ -82,7 +113,7 @@ class Runner:
 
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument('recommender', choices=['random', 'toppop', 'cf'])
+    parser.add_argument('recommender', choices=['random', 'toppop', 'cbf', 'cf'])
     parser.add_argument('--evaluate', '-e', action='store_true')
     parser.add_argument('--split', '-s', choices=['prob', 'loo'], default='prob')
     parser.add_argument('--no-export', action='store_false')
@@ -94,7 +125,10 @@ if __name__ == '__main__':
     elif args.recommender == 'toppop':
         print('Using TopPop')
         recommender = TopPopRecommender()
+    elif args.recommender == 'cbf':
+        print('Using Content-Based Filtering')
+        recommender = ItemCBFKNNRecommender()
     elif args.recommender == 'cf':
         print('Using Collaborative Filtering (item-based)')
         recommender = ItemCFKNNRecommender()
-    Runner(recommender, args.evaluate, args.split).run()
+    Runner(recommender, args.evaluate, args.split).run(requires_icm=(args.recommender == 'cbf'))

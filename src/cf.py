@@ -1,5 +1,7 @@
-from Base.Similarity.Compute_Similarity_Python import Compute_Similarity_Python
+#!/usr/bin/env python3
+
 import numpy as np
+from Base.Similarity.Compute_Similarity_Python import Compute_Similarity_Python
 
 
 class ItemCFKNNRecommender(object):
