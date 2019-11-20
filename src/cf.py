@@ -9,14 +9,25 @@ class ItemCFKNNRecommender(object):
     def __init__(self):
         self.urm = None
         self.w_sparse = None
+        self.weights = None
 
-    def fit(self, urm, top_k=50, shrink=100, normalize=True, similarity="cosine"):
+    def __create_weights(self):
+        weights = []
+        num_users = self.urm.shape[0]
+        num_items = self.urm.shape[1]
+        item_popularity = self.urm.sum(axis=0).squeeze()
+        for item_id in range(num_items):
+            m_j = item_popularity[0, item_id]       # WARNING: THIS CAN BE 0!!!
+            weights.append(np.log(num_users / m_j))
+        self.weights = np.array(weights)
+
+    def fit(self, urm, top_k=50, shrink=0, normalize=False, similarity='cosine'):
         self.urm = urm
         similarity_object = Compute_Similarity_Python(self.urm, shrink=shrink,
                                                       topK=top_k, normalize=normalize,
                                                       similarity=similarity)
-
         self.w_sparse = similarity_object.compute_similarity()
+        self.__create_weights()
 
     def recommend(self, user_id, at=None, exclude_seen=True):
         # compute the scores using the dot product
@@ -28,6 +39,7 @@ class ItemCFKNNRecommender(object):
 
         # rank items
         ranking = scores.argsort()[::-1]
+
 
         return ranking[:at]
 
