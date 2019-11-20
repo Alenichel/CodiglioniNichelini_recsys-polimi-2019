@@ -61,6 +61,8 @@ class Runner:
                 urm_train[user_id, item_id] = 0
                 urm_test[user_id, item_id] = 1
         urm_test = sps.csr_matrix(urm_test, dtype=int, shape=urm.shape)
+        urm_train.eliminate_zeros()
+        urm_test.eliminate_zeros()
         return urm_train, urm_test
 
     def run(self):
