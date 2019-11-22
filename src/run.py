@@ -8,6 +8,7 @@ from load_export_csv import load_csv, export_csv
 from basic_recommenders import RandomRecommender, TopPopRecommender
 from cbf import ItemCBFKNNRecommender
 from cf import ItemCFKNNRecommender
+from slim import SLIM_BPR_Recommender
 
 
 class DataFiles:
@@ -113,7 +114,7 @@ class Runner:
 
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument('recommender', choices=['random', 'toppop', 'cbf', 'cf'])
+    parser.add_argument('recommender', choices=['random', 'top-pop', 'cbf', 'cf', 'slim-bpr'])
     parser.add_argument('--evaluate', '-e', action='store_true')
     parser.add_argument('--split', '-s', choices=['prob', 'loo'], default='prob')
     parser.add_argument('--no-export', action='store_false')
@@ -122,7 +123,7 @@ if __name__ == '__main__':
     if args.recommender == 'random':
         print('Using Random')
         recommender = RandomRecommender()
-    elif args.recommender == 'toppop':
+    elif args.recommender == 'top-pop':
         print('Using TopPop')
         recommender = TopPopRecommender()
     elif args.recommender == 'cbf':
@@ -131,4 +132,7 @@ if __name__ == '__main__':
     elif args.recommender == 'cf':
         print('Using Collaborative Filtering (item-based)')
         recommender = ItemCFKNNRecommender()
+    elif args.recommender == 'slim-bpr':
+        print('Using SLIM (BPR)')
+        recommender = SLIM_BPR_Recommender()
     Runner(recommender, args.evaluate, args.split, args.no_export).run(requires_icm=(args.recommender == 'cbf'))
