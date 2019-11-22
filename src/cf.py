@@ -42,8 +42,7 @@ class ItemCFKNNRecommender(object):
         # rank items
         for i in range(len(scores)):
             scores[i] = scores[i] * self.weights[i]
-        ranking = scores.argsort()[::-1]
-
+        ranking = scores.argsort()[::-1]                # PURE MAGIC FUNCTION
 
         return ranking[:at]
 
