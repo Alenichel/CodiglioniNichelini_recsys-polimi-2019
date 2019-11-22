@@ -1,4 +1,7 @@
+#!/usr/bin/env python3
+
 import numpy as np
+from functools import partial
 
 
 class TailBoost:
@@ -7,6 +10,7 @@ class TailBoost:
         self.weights = list()
         self.urm = urm
         self.__create_weights()
+        self.update_scores = partial(np.vectorize(lambda weight, score: score * weight), self.weights)
 
     def __create_weights(self):
         num_users = self.urm.shape[0]
@@ -18,9 +22,3 @@ class TailBoost:
                 m_j = 1
             self.weights.append(np.log(num_users / m_j))
         self.weights = np.array(self.weights)
-
-    def update_scores(self, scores):
-        for i in range(len(scores)):
-            scores[i] = scores[i] * self.weights[i]
-        return scores
-

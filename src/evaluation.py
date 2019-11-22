@@ -29,7 +29,7 @@ def evaluate_algorithm(urm_test, recommender_object, at=10):
     urm_test = sps.csr_matrix(urm_test)
     n_users = urm_test.shape[0]
     for user_id in range(n_users):
-        if user_id % 10000 == 0:
+        if user_id % 5000 == 0:
             print("Evaluated user {} of {}".format(user_id, n_users))
         start_pos = urm_test.indptr[user_id]
         end_pos = urm_test.indptr[user_id+1]

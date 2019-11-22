@@ -9,6 +9,7 @@ from basic_recommenders import RandomRecommender, TopPopRecommender
 from cbf import ItemCBFKNNRecommender
 from cf import ItemCFKNNRecommender
 from slim import SLIM_BPR_Recommender
+from slim_new import SLIM_BPR
 
 
 class DataFiles:
@@ -134,5 +135,5 @@ if __name__ == '__main__':
         recommender = ItemCFKNNRecommender()
     elif args.recommender == 'slim-bpr':
         print('Using SLIM (BPR)')
-        recommender = SLIM_BPR_Recommender()
+        recommender = SLIM_BPR()
     Runner(recommender, args.evaluate, args.split, args.no_export).run(requires_icm=(args.recommender == 'cbf'))
