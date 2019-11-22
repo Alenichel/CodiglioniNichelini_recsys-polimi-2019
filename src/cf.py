@@ -18,11 +18,13 @@ class ItemCFKNNRecommender(object):
         item_popularity = self.urm.sum(axis=0).squeeze()
         for item_id in range(num_items):
             m_j = item_popularity[0, item_id]       # WARNING: THIS CAN BE 0!!!
+            if m_j == 0:
+                m_j = 1
             weights.append(np.log(num_users / m_j))
         self.weights = np.array(weights)
 
     def fit(self, urm, top_k=50, shrink=100, normalize=True, similarity='cosine'):
-        self.urm = urm
+        self.urm = urm.tocsr()
         similarity_object = Compute_Similarity_Python(self.urm, shrink=shrink,
                                                       topK=top_k, normalize=normalize,
                                                       similarity=similarity)
@@ -38,6 +40,8 @@ class ItemCFKNNRecommender(object):
             scores = self.filter_seen(user_id, scores)
 
         # rank items
+        for i in range(len(scores)):
+            scores[i] = scores[i] * self.weights[i]
         ranking = scores.argsort()[::-1]
 
 

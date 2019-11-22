@@ -131,4 +131,4 @@ if __name__ == '__main__':
     elif args.recommender == 'cf':
         print('Using Collaborative Filtering (item-based)')
         recommender = ItemCFKNNRecommender()
-    Runner(recommender, args.evaluate, args.split).run(requires_icm=(args.recommender == 'cbf'))
+    Runner(recommender, args.evaluate, args.split, args.no_export).run(requires_icm=(args.recommender == 'cbf'))
