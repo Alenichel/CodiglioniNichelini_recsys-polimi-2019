@@ -2,6 +2,8 @@
 
 import numpy as np
 import scipy.sparse as sps
+from time import time
+from datetime import timedelta
 
 
 def precision(is_relevant, relevant_items):
@@ -28,9 +30,9 @@ def evaluate_algorithm(urm_test, recommender_object, at=10):
     num_eval = 0
     urm_test = sps.csr_matrix(urm_test)
     n_users = urm_test.shape[0]
+    batch_size = 2
+    start_time_batch = time()
     for user_id in range(n_users):
-        if user_id % 5000 == 0:
-            print("Evaluated user {} of {}".format(user_id, n_users))
         start_pos = urm_test.indptr[user_id]
         end_pos = urm_test.indptr[user_id+1]
         if end_pos - start_pos > 0:
@@ -41,6 +43,17 @@ def evaluate_algorithm(urm_test, recommender_object, at=10):
             cumulative_precision += precision(is_relevant, relevant_items)
             cumulative_recall += recall(is_relevant, relevant_items)
             cumulative_MAP += MAP(is_relevant, relevant_items)
+        if user_id > 0 and user_id % batch_size == 0:
+            samples_ps = batch_size / (time() - start_time_batch)
+            eta = int((n_users - user_id) / samples_ps)
+            eta = timedelta(seconds=eta)
+            print("Evaluated user {0:7.0f} ( {1:5.2f}% ) in {2:5.2f} s. Users/s: {3:4.0f}. ETA: {4}".format(
+                user_id,
+                100.0 * (user_id / n_users),
+                time() - start_time_batch,
+                samples_ps,
+                eta))
+            start_time_batch = time()
     cumulative_precision /= num_eval
     cumulative_recall /= num_eval
     cumulative_MAP /= num_eval
