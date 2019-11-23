@@ -105,6 +105,7 @@ class Runner:
             recommender.fit(urm_train)
         print('OK')
         if self.evaluate:
+            print('Evaluating...')
             evaluate_algorithm(urm_test, recommender)
         if self.export:
             print('Exporting recommendations...', end='')
@@ -119,7 +120,10 @@ if __name__ == '__main__':
     parser.add_argument('--evaluate', '-e', action='store_true')
     parser.add_argument('--split', '-s', choices=['prob', 'loo'], default='prob')
     parser.add_argument('--no-export', action='store_false')
+    parser.add_argument('--seed', type=int)
     args = parser.parse_args()
+    if args.seed:
+        np.random.seed(args.seed)
     recommender = None
     if args.recommender == 'random':
         print('Using Random')

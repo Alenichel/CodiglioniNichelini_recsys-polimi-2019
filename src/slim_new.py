@@ -32,8 +32,9 @@ class SLIM_BPR:
         self.n_users = urm_train.shape[0]
         self.n_items = urm_train.shape[1]
         # Initialize similarity with random values and zero-out diagonal
-        self.S = np.random.random((self.n_items, self.n_items)).astype('float32')
-        self.S[np.arange(self.n_items), np.arange(self.n_items)] = 0
+        #self.S = np.random.random((self.n_items, self.n_items)).astype('float32')
+        #self.S[np.arange(self.n_items), np.arange(self.n_items)] = 0
+        self.S = np.zeros((self.n_items, self.n_items), dtype=float)
         start_time_train = time()
         for currentEpoch in range(epochs):
             start_time_epoch = time()
@@ -52,7 +53,7 @@ class SLIM_BPR:
         # self.W = similarityMatrixTopK(self.W, verbose=True).tocsr()
 
     def epoch_iteration(self):
-        num_positive_interactions = int(self.urm_train.nnz * 0.1)
+        num_positive_interactions = int(self.urm_train.nnz)
         start_time = time()
         batch_size = 10000
         start_time_batch = start_time
