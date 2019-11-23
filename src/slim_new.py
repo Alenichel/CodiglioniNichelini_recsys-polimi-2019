@@ -52,23 +52,24 @@ class SLIM_BPR:
         # self.W = similarityMatrixTopK(self.W, verbose=True).tocsr()
 
     def epoch_iteration(self):
-        num_positive_interactions = int(self.urm_train.nnz * 0.01)
+        num_positive_interactions = int(self.urm_train.nnz * 0.1)
         start_time = time()
         batch_size = 10000
+        start_time_batch = start_time
         for num_sample in range(num_positive_interactions):
             user_id, pos_item_id, neg_item_id = self.sample_triple()
             self.update_factors(user_id, pos_item_id, neg_item_id)
-            if num_sample > 0 and num_sample % batch_size == 0:
-                samples_ps = batch_size / (time() - start_time)
-                eta = int((num_positive_interactions - num_sample) / samples_ps)
-                eta = timedelta(seconds=eta)
-                print('Processed {0:7.0f} samples ( {1:5.2f}% ) in {2:5.2f} s. Samples/s: {3:4.0f}. ETA: {4}'.format(
+            if num_sample % batch_size == 0 and num_sample > 0:
+                elapsed = timedelta(seconds=int(time()-start_time))
+                samples_ps = batch_size / (time() - start_time_batch)
+                eta = timedelta(seconds=int((num_positive_interactions - num_sample) / samples_ps))
+                print('Processed {0:7.0f} samples ( {1:5.2f}% ) in {2}. Samples/s: {3:4.0f}. ETA: {4}'.format(
                     num_sample,
                     100.0 * float(num_sample)/num_positive_interactions,
-                    time()-start_time,
+                    elapsed,
                     samples_ps,
                     eta))
-                start_time = time()
+                start_time_batch = time()
 
     def update_factors(self, user_id, pos_item_id, neg_item_id):
         # Calculate current predicted score

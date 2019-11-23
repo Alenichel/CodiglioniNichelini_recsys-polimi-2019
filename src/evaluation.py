@@ -30,8 +30,9 @@ def evaluate_algorithm(urm_test, recommender_object, at=10):
     num_eval = 0
     urm_test = sps.csr_matrix(urm_test)
     n_users = urm_test.shape[0]
-    batch_size = 2
-    start_time_batch = time()
+    batch_size = 25
+    start_time = time()
+    start_time_batch = start_time
     for user_id in range(n_users):
         start_pos = urm_test.indptr[user_id]
         end_pos = urm_test.indptr[user_id+1]
@@ -43,14 +44,14 @@ def evaluate_algorithm(urm_test, recommender_object, at=10):
             cumulative_precision += precision(is_relevant, relevant_items)
             cumulative_recall += recall(is_relevant, relevant_items)
             cumulative_MAP += MAP(is_relevant, relevant_items)
-        if user_id > 0 and user_id % batch_size == 0:
+        if user_id % batch_size == 0 and user_id > 0:
+            elapsed = timedelta(seconds=int(time() - start_time))
             samples_ps = batch_size / (time() - start_time_batch)
-            eta = int((n_users - user_id) / samples_ps)
-            eta = timedelta(seconds=eta)
-            print("Evaluated user {0:7.0f} ( {1:5.2f}% ) in {2:5.2f} s. Users/s: {3:4.0f}. ETA: {4}".format(
+            eta = timedelta(seconds=int((n_users - user_id) / samples_ps))
+            print("Evaluated user {0:7.0f} ( {1:5.2f}% ) in {2}. Users/s: {3:5.1f}. ETA: {4}".format(
                 user_id,
                 100.0 * (user_id / n_users),
-                time() - start_time_batch,
+                elapsed,
                 samples_ps,
                 eta))
             start_time_batch = time()
