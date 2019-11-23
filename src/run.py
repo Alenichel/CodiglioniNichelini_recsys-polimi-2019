@@ -3,6 +3,8 @@
 from argparse import ArgumentParser
 import numpy as np
 import scipy.sparse as sps
+from time import time
+from datetime import timedelta
 from evaluation import evaluate_algorithm
 from load_export_csv import load_csv, export_csv
 from basic_recommenders import RandomRecommender, TopPopRecommender
@@ -109,7 +111,24 @@ class Runner:
             evaluate_algorithm(urm_test, recommender)
         if self.export:
             print('Exporting recommendations...', end='')
-            data = [(u_id, recommender.recommend(u_id, at=10)) for u_id in self.target_users]
+            data = list()
+            batch_size = 100
+            start_time = time()
+            start_time_batch = start_time
+            for u_id in self.target_users:
+                data.append((u_id, recommender.recommend(u_id, at=10)))
+                if u_id % batch_size == 0 and u_id > 0:
+                    index_uid = self.target_users.index(u_id)
+                    elapsed = timedelta(seconds=int(time() - start_time))
+                    samples_ps = batch_size / (time() - start_time_batch)
+                    eta = timedelta(seconds=int((len(self.target_users) - index_uid) / samples_ps))
+                    print('Exported {0:7.0f} users ( {1:5.2f}% ) in {2}. Samples/s: {3:4.0f}. ETA: {4}'.format(
+                        index_uid,
+                        100.0 * float(index_uid) / len(self.target_users),
+                        elapsed,
+                        samples_ps,
+                        eta))
+                    start_time_batch = time()
             export_csv(('user_id', 'item_list'), data)
             print('OK')
 

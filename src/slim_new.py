@@ -27,8 +27,8 @@ class SLIM_BPR:
         self.S = None
         self.W = None
 
-    def fit(self, urm_train, epochs=1):
-        self.urm_train = urm_train
+    def fit(self, urm_train, epochs=15):
+        self.urm_train = urm_train.tocsr()
         self.n_users = urm_train.shape[0]
         self.n_items = urm_train.shape[1]
         # Initialize similarity with random values and zero-out diagonal
