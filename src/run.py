@@ -10,8 +10,8 @@ from load_export_csv import load_csv, export_csv
 from basic_recommenders import RandomRecommender, TopPopRecommender
 from cbf import ItemCBFKNNRecommender
 from cf import ItemCFKNNRecommender
-from slim import SLIM_BPR_Recommender
-from slim_new import SLIM_BPR
+from slim_nb import SLIM_BPR_Recommender
+from slim_bpr import SLIM_BPR
 
 
 class DataFiles:
@@ -67,7 +67,7 @@ class Runner:
         return self.urm, None
 
     @staticmethod
-    def train_test_split(urm, split=0.9):
+    def train_test_split(urm, split=0.85):
         print('Using probabilistic splitting ({0:.2f}/{1:.2f})'.format(split, 1-split))
         urm = urm.tocoo()
         num_interactions = urm.nnz
@@ -119,7 +119,7 @@ class Runner:
         if self.export:
             print('Exporting recommendations...', end='')
             data = list()
-            batch_size = 100
+            batch_size = 1000
             start_time = time()
             start_time_batch = start_time
             for u_id in self.target_users:
@@ -142,7 +142,7 @@ class Runner:
 
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument('recommender', choices=['random', 'top-pop', 'cbf', 'cf', 'slim-bpr'])
+    parser.add_argument('recommender', choices=['random', 'top-pop', 'cbf', 'cf', 'slim-nb', 'slim-bpr'])
     parser.add_argument('--evaluate', '-e', action='store_true')
     parser.add_argument('--split', '-s', choices=['prob', 'loo'], default='prob')
     parser.add_argument('--no-export', action='store_false')
@@ -164,7 +164,10 @@ if __name__ == '__main__':
     elif args.recommender == 'cf':
         print('Using Collaborative Filtering (item-based)')
         recommender = ItemCFKNNRecommender()
+    elif args.recommender == 'slim-nb':
+        print('Using SLIM (from the notebook)')
+        recommender = SLIM_BPR_Recommender()
     elif args.recommender == 'slim-bpr':
         print('Using SLIM (BPR)')
-        recommender = SLIM_BPR_Recommender()
+        recommender = SLIM_BPR()
     Runner(recommender, args.evaluate, args.split, args.no_export, args.use_validation_set).run(requires_icm=(args.recommender == 'cbf'))

@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 
-import sys
 from time import time
 from datetime import timedelta
 import numpy as np
-import scipy.sparse as sps
 from scipy.special import expit
 from Base.Recommender_utils import similarityMatrixTopK
 
@@ -27,7 +25,7 @@ class SLIM_BPR:
         self.S = None
         self.W = None
 
-    def fit(self, urm_train, epochs=15):
+    def fit(self, urm_train, epochs=100):
         self.urm_train = urm_train.tocsr()
         self.n_users = urm_train.shape[0]
         self.n_items = urm_train.shape[1]
@@ -39,21 +37,20 @@ class SLIM_BPR:
         for currentEpoch in range(epochs):
             start_time_epoch = time()
             self.epoch_iteration()
-            elapsed_time = float(time() - start_time_epoch)
-            elapsed_time = timedelta(seconds=elapsed_time)
+            elapsed_time = timedelta(seconds=int(time() - start_time_epoch))
             print("Epoch {0} of {1} complete in {2}.".format(currentEpoch+1, epochs, elapsed_time))
-        elapsed_time = float(time() - start_time_train)
-        elapsed_time = timedelta(seconds=elapsed_time)
+        elapsed_time = timedelta(seconds=int(time() - start_time_train))
         print("Train completed in {0}.".format(elapsed_time))
         # The similarity matrix is learnt row-wise
         # To be used in the product URM*S must be transposed to be column-wise
         self.W = self.S.T
         del self.S
         # TODO: Check
-        # self.W = similarityMatrixTopK(self.W, verbose=True).tocsr()
+        self.W = similarityMatrixTopK(self.W, verbose=True).tocsr()
+        self.W.eliminate_zeros()
 
     def epoch_iteration(self):
-        num_positive_interactions = int(self.urm_train.nnz)
+        num_positive_interactions = int(self.urm_train.nnz * 0.01)
         start_time = time()
         batch_size = 10000
         start_time_batch = start_time
@@ -113,9 +110,9 @@ class SLIM_BPR:
 
     def recommend(self, user_id, at=None, exclude_seen=True):
         # compute the scores using the dot product
-        user_profile = self.urm_train[user_id].toarray()
-        scores = user_profile.dot(self.W)   # TODO: This takes a hell lot of time and memory to compute
-        scores = scores.ravel()
+        user_profile = self.urm_train[user_id]
+        scores = user_profile.dot(self.W)
+        scores = scores.toarray().ravel()
         if exclude_seen:
             scores = self.filter_seen(user_id, scores)
         # rank items

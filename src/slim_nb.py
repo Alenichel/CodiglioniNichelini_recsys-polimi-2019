@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 
 import numpy as np
+import scipy.sparse as sps
 from scipy.special import expit
-import time
+from time import time
+from datetime import timedelta
 from helper import TailBoost
-from Base.Similarity.Compute_Similarity_Python import Compute_Similarity_Python
 from evaluation import evaluate_algorithm
+from Base.Recommender_utils import similarityMatrixTopK
+
 
 class SLIM_BPR_Recommender:
     """SLIM_BPR recommender with cosine similarity and no shrinkage"""
@@ -43,8 +46,9 @@ class SLIM_BPR_Recommender:
         # Get number of available interactions
         num_positive_interactions = int(self.urm.nnz * 0.01)
 
-        start_time_epoch = time.time()
-        start_time_batch = time.time()
+        batch_size = 5000
+        start_time = time()
+        start_time_batch = time()
 
         # Uniform user sampling without replacement
         for num_sample in range(num_positive_interactions):
@@ -63,15 +67,17 @@ class SLIM_BPR_Recommender:
             self.similarity_matrix[positive_item_id, positive_item_id] = 0
             self.similarity_matrix[negative_item_id, user_seen_items] -= self.learning_rate * gradient
             self.similarity_matrix[negative_item_id, negative_item_id] = 0
-            now = time.time()
-            #if now - start_time_batch >= 30 or num_sample == num_positive_interactions - 1:
-            if num_sample % 5000 == 0:
-                print("Processed {} ( {:.2f}% ) in {:.2f} seconds. Sample per second: {:.0f}".format(
+            if num_sample % batch_size == 0 and num_sample > 0:
+                elapsed = timedelta(seconds=int(time() - start_time))
+                samples_ps = batch_size / (time() - start_time_batch)
+                eta = timedelta(seconds=int((num_positive_interactions - num_sample) / samples_ps))
+                print('Processed {0:7.0f} samples ( {1:5.2f}% ) in {2}. Samples/s: {3:4.0f}. ETA: {4}'.format(
                     num_sample,
                     100.0 * float(num_sample) / num_positive_interactions,
-                    now - start_time_batch,
-                    float(num_sample) / (now - start_time_epoch)))
-                start_time_batch = now
+                    elapsed,
+                    samples_ps,
+                    eta))
+                start_time_batch = time()
 
     def fit(self, urm, urm_validation=None, learning_rate=0.01, epochs=100):
         self.urm = urm.tocsr()
@@ -91,49 +97,45 @@ class SLIM_BPR_Recommender:
         self.learning_rate = learning_rate
         self.epochs = epochs
 
-        start_time_train = time.time()
+        start_time_train = time()
 
         last_MAP = 0
         for currentEpoch in range(self.epochs):
-            start_time_epoch = time.time()
+            start_time_epoch = time()
             self.epoch_iteration()
             if urm_validation is not None:
+                self.similarity_matrix = sps.csr_matrix(self.similarity_matrix.T)
+                self.similarity_matrix.eliminate_zeros()
                 MAP = evaluate_algorithm(urm_validation, self)['MAP']
+                self.similarity_matrix = self.similarity_matrix.todense().T
                 if MAP < last_MAP:
                     print("Early stopping at {0}".format(currentEpoch))
                     break
                 last_MAP = MAP
-            print("Epoch {} of {} complete in {:.2f} minutes".format(currentEpoch+1, epochs, float(time.time()-start_time_epoch)/60))
+            elapsed_time = timedelta(seconds=int(time() - start_time_epoch))
+            print("Epoch {0} of {1} complete in {2}.".format(currentEpoch + 1, epochs, elapsed_time))
 
-        print("Train completed in {:.2f} minutes".format(float(time.time()-start_time_train)/60))
+        print("Train completed in {:.2f} minutes".format(int(time()-start_time_train)/60))
 
         self.similarity_matrix = self.similarity_matrix.T
-
-        #self.similarity_matrix = similarityMatrixTopK(self.similarity_matrix, k=100)
-        #similarity_object = Compute_Similarity_Python(self.urm, topK=100, shrink=100, normalize=True)
-        #self.similarity_matrix = similarity_object.compute_similarity()
+        self.similarity_matrix = sps.csr_matrix(self.similarity_matrix)
+        self.similarity_matrix = similarityMatrixTopK(self.similarity_matrix, k=100).tocsr()
+        self.similarity_matrix.eliminate_zeros()
 
     def recommend(self, user_id, at=None, exclude_seen=True):
         # compute the scores using the dot product
         user_profile = self.urm[user_id]
-        scores = user_profile.dot(self.similarity_matrix).ravel()   # REMINDER: .toarray()
-
+        scores = user_profile.dot(self.similarity_matrix)
+        scores = scores.toarray().ravel()
         if exclude_seen:
             scores = self.filter_seen(user_id, scores)
-        scores = self.tb.update_scores(scores)
-
         # rank items
         ranking = scores.argsort()[::-1]
-
         return ranking[:at]
 
     def filter_seen(self, user_id, scores):
-
         start_pos = self.urm.indptr[user_id]
         end_pos = self.urm.indptr[user_id + 1]
-
         user_profile = self.urm.indices[start_pos:end_pos]
-
         scores[user_profile] = -np.inf
-
         return scores
