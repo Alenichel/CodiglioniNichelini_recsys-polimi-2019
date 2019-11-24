@@ -5,7 +5,7 @@ from scipy.special import expit
 import time
 from helper import TailBoost
 from Base.Similarity.Compute_Similarity_Python import Compute_Similarity_Python
-
+from evaluation import evaluate_algorithm
 
 class SLIM_BPR_Recommender:
     """SLIM_BPR recommender with cosine similarity and no shrinkage"""
@@ -19,6 +19,7 @@ class SLIM_BPR_Recommender:
         self.learning_rate = None
         self.epochs = None
         self.similarity_matrix = None
+        self.urm_validation = None
 
     def sample_triplet(self):
         # By randomly selecting a user in this way we could end up
@@ -40,7 +41,7 @@ class SLIM_BPR_Recommender:
     def epoch_iteration(self):
 
         # Get number of available interactions
-        num_positive_interactions = self.urm.nnz
+        num_positive_interactions = int(self.urm.nnz * 0.01)
 
         start_time_epoch = time.time()
         start_time_batch = time.time()
@@ -72,8 +73,10 @@ class SLIM_BPR_Recommender:
                     float(num_sample) / (now - start_time_epoch)))
                 start_time_batch = now
 
-    def fit(self, urm, learning_rate=0.01, epochs=10):
+    def fit(self, urm, urm_validation=None, learning_rate=0.01, epochs=100):
         self.urm = urm.tocsr()
+        if urm_validation is not None:
+            self.urm_validation = urm_validation.tocsr()
         self.n_users = self.urm.shape[0]
         self.n_items = self.urm.shape[1]
         self.similarity_matrix = np.zeros((self.n_items, self.n_items))
@@ -90,9 +93,16 @@ class SLIM_BPR_Recommender:
 
         start_time_train = time.time()
 
+        last_MAP = 0
         for currentEpoch in range(self.epochs):
             start_time_epoch = time.time()
             self.epoch_iteration()
+            if urm_validation is not None:
+                MAP = evaluate_algorithm(urm_validation, self)['MAP']
+                if MAP < last_MAP:
+                    print("Early stopping at {0}".format(currentEpoch))
+                    break
+                last_MAP = MAP
             print("Epoch {} of {} complete in {:.2f} minutes".format(currentEpoch+1, epochs, float(time.time()-start_time_epoch)/60))
 
         print("Train completed in {:.2f} minutes".format(float(time.time()-start_time_train)/60))
@@ -106,7 +116,7 @@ class SLIM_BPR_Recommender:
     def recommend(self, user_id, at=None, exclude_seen=True):
         # compute the scores using the dot product
         user_profile = self.urm[user_id]
-        scores = user_profile.dot(self.similarity_matrix).toarray().ravel()
+        scores = user_profile.dot(self.similarity_matrix).ravel()   # REMINDER: .toarray()
 
         if exclude_seen:
             scores = self.filter_seen(user_id, scores)

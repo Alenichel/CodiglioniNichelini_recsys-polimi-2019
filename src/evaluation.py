@@ -30,7 +30,7 @@ def evaluate_algorithm(urm_test, recommender_object, at=10):
     num_eval = 0
     urm_test = sps.csr_matrix(urm_test)
     n_users = urm_test.shape[0]
-    batch_size = 25
+    batch_size = 1000
     start_time = time()
     start_time_batch = start_time
     for user_id in range(n_users):

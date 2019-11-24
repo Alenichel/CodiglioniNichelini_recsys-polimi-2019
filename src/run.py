@@ -26,7 +26,7 @@ class DataFiles:
 
 class Runner:
 
-    def __init__(self, recommender, evaluate=True, split='prob', export=False):
+    def __init__(self, recommender, evaluate=True, split='prob', export=False, use_validation=False):
         self.urm = None
         self.icm = None
         self.target_users = None
@@ -34,6 +34,7 @@ class Runner:
         self.evaluate = evaluate
         self.split = split
         self.export = export
+        self.validation = use_validation
 
     @staticmethod
     def load_icm_csv(filename):
@@ -60,20 +61,22 @@ class Runner:
         self.target_users = [int(x[0]) for x in self.target_users]
         if self.evaluate:
             if self.split == 'prob':
-                return self.train_test_split()
+                return Runner.train_test_split(self.urm)
             elif self.split == 'loo':
                 return self.train_test_loo_split()
         return self.urm, None
 
-    def train_test_split(self, split=0.8):
+    @staticmethod
+    def train_test_split(urm, split=0.9):
         print('Using probabilistic splitting ({0:.2f}/{1:.2f})'.format(split, 1-split))
-        num_interactions = self.urm.nnz
-        shape = self.urm.shape
+        urm = urm.tocoo()
+        num_interactions = urm.nnz
+        shape = urm.shape
         train_mask = np.random.choice([True, False], num_interactions, p=[split, 1-split])
-        urm_train = sps.coo_matrix((self.urm.data[train_mask], (self.urm.row[train_mask], self.urm.col[train_mask])), shape=shape)
+        urm_train = sps.coo_matrix((urm.data[train_mask], (urm.row[train_mask], urm.col[train_mask])), shape=shape)
         urm_train = urm_train.tocsr()
         test_mask = np.logical_not(train_mask)
-        urm_test = sps.coo_matrix((self.urm.data[test_mask], (self.urm.row[test_mask], self.urm.col[test_mask])), shape=shape)
+        urm_test = sps.coo_matrix((urm.data[test_mask], (urm.row[test_mask], urm.col[test_mask])), shape=shape)
         urm_test = urm_test.tocsr()
         return urm_train, urm_test
 
@@ -100,9 +103,13 @@ class Runner:
     def run(self, requires_icm=False):
         print('Preparing data...')
         urm_train, urm_test = self.prepare_data()
+        if self.validation:
+            urm_train, urm_validation = Runner.train_test_split(urm_train)
         print('OK\nFitting...')
         if requires_icm:
             recommender.fit(urm_train, self.icm)
+        elif self.validation:
+            recommender.fit(urm_train, urm_validation)
         else:
             recommender.fit(urm_train)
         print('OK')
@@ -140,6 +147,7 @@ if __name__ == '__main__':
     parser.add_argument('--split', '-s', choices=['prob', 'loo'], default='prob')
     parser.add_argument('--no-export', action='store_false')
     parser.add_argument('--seed', type=int)
+    parser.add_argument('--use-validation-set', action='store_true')
     args = parser.parse_args()
     if args.seed:
         np.random.seed(args.seed)
@@ -158,5 +166,5 @@ if __name__ == '__main__':
         recommender = ItemCFKNNRecommender()
     elif args.recommender == 'slim-bpr':
         print('Using SLIM (BPR)')
-        recommender = SLIM_BPR()
-    Runner(recommender, args.evaluate, args.split, args.no_export).run(requires_icm=(args.recommender == 'cbf'))
+        recommender = SLIM_BPR_Recommender()
+    Runner(recommender, args.evaluate, args.split, args.no_export, args.use_validation_set).run(requires_icm=(args.recommender == 'cbf'))
