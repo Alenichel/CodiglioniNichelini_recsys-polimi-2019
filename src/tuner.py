@@ -124,7 +124,7 @@ class Tuner:
 if __name__ == '__main__':
     print('Using Collaborative Filtering (item-based)')
     recommender = ItemCFKNNRecommender()
-    t = Tuner(150)
+    t = Tuner()
     results = t.run_tuner()
     for parameter in results['list']:
         parameter['MAP'] = t.evaluate(parameter['top_k'], parameter['shrink'], parameter['similarity_function'])
