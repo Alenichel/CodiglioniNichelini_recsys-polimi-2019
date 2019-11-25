@@ -61,7 +61,7 @@ class SLIM_BPR:
                 elapsed = timedelta(seconds=int(time()-start_time))
                 samples_ps = batch_size / (time() - start_time_batch)
                 eta = timedelta(seconds=int((num_positive_interactions - num_sample) / samples_ps))
-                print('Processed {0:7.0f} samples ( {1:5.2f}% ) in {2}. Samples/s: {3:4.0f}. ETA: {4}'.format(
+                print('Processed {0:7.0f} samples ( {1:5.2f}% ) in {2} | Samples/s: {3:4.0f} | ETA: {4}'.format(
                     num_sample,
                     100.0 * float(num_sample)/num_positive_interactions,
                     elapsed,

@@ -83,11 +83,11 @@ class Runner:
     def train_test_loo_split(self):
         print('Using LeaveOneOut')
         urm = self.urm.tocsr()
-        users_len = len(urm.indptr) - 1
-        items_len = max(urm.indices) + 1
+        num_users = self.urm.shape[0]
+        num_items = self.urm.shape[1]
         urm_train = urm.copy()
-        urm_test = np.zeros((users_len, items_len))
-        for user_id in range(users_len):
+        urm_test = np.zeros((num_users, num_items))
+        for user_id in range(num_users):
             start_pos = urm_train.indptr[user_id]
             end_pos = urm_train.indptr[user_id + 1]
             user_profile = urm_train.indices[start_pos:end_pos]
@@ -144,12 +144,13 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('recommender', choices=['random', 'top-pop', 'cbf', 'cf', 'slim-nb', 'slim-bpr'])
     parser.add_argument('--evaluate', '-e', action='store_true')
-    parser.add_argument('--split', '-s', choices=['prob', 'loo'], default='prob')
+    parser.add_argument('--split', '-s', choices=['prob', 'loo'], default='loo')
     parser.add_argument('--no-export', action='store_false')
     parser.add_argument('--seed', type=int)
     parser.add_argument('--use-validation-set', action='store_true')
     args = parser.parse_args()
     if args.seed:
+        print('Seeding random numbers generator with seed: {0}'.format(args.seed))
         np.random.seed(args.seed)
     recommender = None
     if args.recommender == 'random':
