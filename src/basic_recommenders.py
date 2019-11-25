@@ -27,7 +27,7 @@ class TopPopRecommender(object):
         return 'Top Pop Recommender'
 
     def fit(self, urm_train):
-        self.urm_train = urm_train
+        self.urm_train = urm_train.tocsr()
         item_popularity = (urm_train > 0).sum(axis=0)
         item_popularity = np.array(item_popularity).squeeze()
         # We are not interested in sorting the popularity value,
