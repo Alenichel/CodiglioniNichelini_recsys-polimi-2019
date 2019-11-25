@@ -63,7 +63,7 @@ class Runner:
             if self.split == 'prob':
                 return Runner.train_test_split(self.urm)
             elif self.split == 'loo':
-                return self.train_test_loo_split()
+                return self.train_test_loo_split(self.urm)
         return self.urm, None
 
     @staticmethod
@@ -80,11 +80,12 @@ class Runner:
         urm_test = urm_test.tocsr()
         return urm_train, urm_test
 
-    def train_test_loo_split(self):
+    @staticmethod
+    def train_test_loo_split(urm):
         print('Using LeaveOneOut')
-        urm = self.urm.tocsr()
-        num_users = self.urm.shape[0]
-        num_items = self.urm.shape[1]
+        urm = urm.tocsr()
+        num_users = urm.shape[0]
+        num_items = urm.shape[1]
         urm_train = urm.copy()
         urm_test = np.zeros((num_users, num_items))
         for user_id in range(num_users):

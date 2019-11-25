@@ -15,7 +15,7 @@ class ItemCFKNNRecommender(object):
         self.tb = None
         self.fallback_recommender = TopPopRecommender()
 
-    def fit(self, urm, top_k=50, shrink=100, normalize=True, similarity='cosine'):
+    def fit(self, urm, top_k=45, shrink=105, normalize=True, similarity='cosine'):
         self.urm = urm.tocsr()
         if self.use_tail_boost:
             print('Tail Boost: ON')
@@ -31,16 +31,16 @@ class ItemCFKNNRecommender(object):
     def recommend(self, user_id, at=None, exclude_seen=True):
         # compute the scores using the dot product
         user_profile = self.urm[user_id]
-        if user_profile.nnz == 0:
+        """if user_profile.nnz == 0:
             return self.fallback_recommender.recommend(user_id, at, exclude_seen)
-        else:
-            scores = user_profile.dot(self.w_sparse).toarray().ravel()
-            if exclude_seen:
-                scores = self.filter_seen(user_id, scores)
-            if self.use_tail_boost:
-                scores = self.tb.update_scores(scores)
-            ranking = scores.argsort()[::-1]
-            return ranking[:at]
+        else:"""
+        scores = user_profile.dot(self.w_sparse).toarray().ravel()
+        if exclude_seen:
+            scores = self.filter_seen(user_id, scores)
+        if self.use_tail_boost:
+            scores = self.tb.update_scores(scores)
+        ranking = scores.argsort()[::-1]
+        return ranking[:at]
 
     def filter_seen(self, user_id, scores):
         start_pos = self.urm.indptr[user_id]

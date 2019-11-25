@@ -52,7 +52,7 @@ class Tuner:
         self.icm = sps.csr_matrix((icm_values, (icm_items, icm_features)))
         self.target_users = load_csv(DataFiles.TARGET_USERS_TEST)
         self.target_users = [int(x[0]) for x in self.target_users]
-        return Runner.train_test_split(self.urm)
+        return Runner.train_test_loo_split(self.urm)
 
     def run_tuner(self):
         max_MAP = 0
@@ -80,8 +80,24 @@ class Tuner:
         print("Obtained %d with the following parameters %s, %d, %d"
               % (max_MAP, max_param['sim_func'], max_param['top_k_param'],max_param['shrink_param']))
 
+    def evaluate(self, top_k, shrink, similarity='cosine', round=10):
+        median_value = int()
+        cumulative_map = 0
+        for n in range(round):
+            print('\n\n\nEvaluating CF with %s similarity, %d top_k, %d shrink (ROUND %d)'
+                  % (similarity, top_k, shrink, n))
+            print('Preparing data...')
+            urm_train, urm_test = self.prepare_data()
+            print('OK\nFitting...')
+            recommender.fit(urm_train)
+            print('Evaluating...')
+            cumulative_map += evaluate_algorithm(urm_test, recommender)['MAP']
+        median_value = cumulative_map / round
+        print('The median value of MAP after %d round is: %d' % (round, median_value))
+
 
 if __name__ == '__main__':
     print('Using Collaborative Filtering (item-based)')
     recommender = ItemCFKNNRecommender()
-    Tuner().run_tuner()
+    #Tuner().run_tuner()
+    Tuner().evaluate(50, 100)
