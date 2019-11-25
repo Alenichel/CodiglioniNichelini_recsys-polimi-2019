@@ -93,11 +93,11 @@ class Tuner:
             print('Evaluating...')
             cumulative_map += evaluate_algorithm(urm_test, recommender)['MAP']
         median_value = cumulative_map / round
-        print('The median value of MAP after %d round is: %d' % (round, median_value))
+        print('The median value of MAP after %d round is: %f' % (round, median_value))
 
 
 if __name__ == '__main__':
     print('Using Collaborative Filtering (item-based)')
     recommender = ItemCFKNNRecommender()
     #Tuner().run_tuner()
-    Tuner().evaluate(50, 100)
+    Tuner().evaluate(5, 35)
