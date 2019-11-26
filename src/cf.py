@@ -15,8 +15,8 @@ class ItemCFKNNRecommender(object):
         self.tb = None
         self.fallback_recommender = TopPopRecommender()
 
-    def fit(self, urm, top_k=45, shrink=105, normalize=True, similarity='cosine'):
-        print('Top_k setted to %d, shrink setted to %d' % (top_k, shrink))
+    def fit(self, urm, top_k=10, shrink=50, normalize=True, similarity='cosine'):
+        print('top_k={0}, shrink={1}'.format(top_k, shrink))
         self.urm = urm.tocsr()
         if self.use_tail_boost:
             print('Tail Boost: ON')

@@ -118,7 +118,7 @@ class Runner:
             print('Evaluating...')
             evaluate_algorithm(urm_test, recommender)
         if self.export:
-            print('Exporting recommendations...', end='')
+            print('Exporting recommendations...')
             data = list()
             batch_size = 1000
             start_time = time()
@@ -130,7 +130,7 @@ class Runner:
                     elapsed = timedelta(seconds=int(time() - start_time))
                     samples_ps = batch_size / (time() - start_time_batch)
                     eta = timedelta(seconds=int((len(self.target_users) - index_uid) / samples_ps))
-                    print('Exported {0:7.0f} users ( {1:5.2f}% ) in {2}. Samples/s: {3:4.0f}. ETA: {4}'.format(
+                    print('Exported {0:7.0f} users ( {1:5.2f}% ) in {2} | Samples/s: {3:6.1f} | ETA: {4}'.format(
                         index_uid,
                         100.0 * float(index_uid) / len(self.target_users),
                         elapsed,

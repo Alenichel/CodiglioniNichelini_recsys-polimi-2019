@@ -4,6 +4,7 @@ from time import time
 from datetime import timedelta
 import numpy as np
 from scipy.special import expit
+from basic_recommenders import TopPopRecommender
 from Base.Recommender_utils import similarityMatrixTopK
 
 
@@ -13,7 +14,7 @@ class SLIM_BPR:
     The code is identical with no optimizations
     """
 
-    def __init__(self, lambda_i=0.0025, lambda_j=0.00025, learning_rate=0.05):
+    def __init__(self, lambda_i=0.0025, lambda_j=0.00025, learning_rate=0.01):
         self.urm_train = None
         self.n_users = None
         self.n_items = None
@@ -24,8 +25,9 @@ class SLIM_BPR:
         self.sparse_weights = False
         self.S = None
         self.W = None
+        self.fallback_recommender = TopPopRecommender()
 
-    def fit(self, urm_train, epochs=100):
+    def fit(self, urm_train, epochs=300):
         self.urm_train = urm_train.tocsr()
         self.n_users = urm_train.shape[0]
         self.n_items = urm_train.shape[1]
@@ -37,8 +39,8 @@ class SLIM_BPR:
         for currentEpoch in range(epochs):
             start_time_epoch = time()
             self.epoch_iteration()
-            elapsed_time = timedelta(seconds=int(time() - start_time_epoch))
-            print("Epoch {0} of {1} complete in {2}.".format(currentEpoch+1, epochs, elapsed_time))
+            elapsed_time = timedelta(seconds=time() - start_time_epoch)
+            print("Epoch {0} of {1} completed in {2}.".format(currentEpoch+1, epochs, elapsed_time))
         elapsed_time = timedelta(seconds=int(time() - start_time_train))
         print("Train completed in {0}.".format(elapsed_time))
         # The similarity matrix is learnt row-wise
@@ -48,6 +50,7 @@ class SLIM_BPR:
         # TODO: Check
         self.W = similarityMatrixTopK(self.W, verbose=True).tocsr()
         self.W.eliminate_zeros()
+        self.fallback_recommender.fit(self.urm_train)
 
     def epoch_iteration(self):
         num_positive_interactions = int(self.urm_train.nnz * 0.01)
@@ -61,7 +64,7 @@ class SLIM_BPR:
                 elapsed = timedelta(seconds=int(time()-start_time))
                 samples_ps = batch_size / (time() - start_time_batch)
                 eta = timedelta(seconds=int((num_positive_interactions - num_sample) / samples_ps))
-                print('Processed {0:7.0f} samples ( {1:5.2f}% ) in {2} | Samples/s: {3:4.0f} | ETA: {4}'.format(
+                print('Processed {0:7.0f} samples ( {1:5.2f}% ) in {2} | Samples/s: {3:6.1f} | ETA: {4}'.format(
                     num_sample,
                     100.0 * float(num_sample)/num_positive_interactions,
                     elapsed,
@@ -108,9 +111,11 @@ class SLIM_BPR:
         pos_item_id, neg_item_id = self.sample_item_pair(user_id)
         return user_id, pos_item_id, neg_item_id
 
-    def recommend(self, user_id, at=None, exclude_seen=True):
+    def recommend(self, user_id, at=10, exclude_seen=True):
         # compute the scores using the dot product
         user_profile = self.urm_train[user_id]
+        if user_profile.nnz == 0:
+            return self.fallback_recommender.recommend(user_id, at, exclude_seen)
         scores = user_profile.dot(self.W)
         scores = scores.toarray().ravel()
         if exclude_seen:

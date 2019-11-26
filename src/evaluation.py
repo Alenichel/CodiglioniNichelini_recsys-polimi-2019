@@ -48,7 +48,7 @@ def evaluate_algorithm(urm_test, recommender_object, at=10):
             elapsed = timedelta(seconds=int(time() - start_time))
             samples_ps = batch_size / (time() - start_time_batch)
             eta = timedelta(seconds=int((n_users - user_id) / samples_ps))
-            print("Evaluated user {0:7.0f} ( {1:5.2f}% ) in {2} | Users/s: {3:5.1f} | ETA: {4}".format(
+            print("Evaluated user {0:7.0f} ( {1:5.2f}% ) in {2} | Users/s: {3:6.1f} | ETA: {4}".format(
                 user_id,
                 100.0 * (user_id / n_users),
                 elapsed,
