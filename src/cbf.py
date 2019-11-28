@@ -11,7 +11,7 @@ class ItemCBFKNNRecommender:
         self.icm = None
         self.w_sparse = None
 
-    def fit(self, urm, icm, top_k=50, shrink=0, normalize=True, similarity='cosine'):
+    def fit(self, urm, icm, top_k=50, shrink=100, normalize=True, similarity='tanimoto'):
         self.urm = urm
         self.icm = icm
         similarity_object = Compute_Similarity_Python(self.icm.T, shrink=shrink,

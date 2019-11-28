@@ -3,6 +3,7 @@
 from argparse import ArgumentParser
 import numpy as np
 import scipy.sparse as sps
+from sklearn.preprocessing import LabelEncoder
 from time import time
 from datetime import timedelta
 from evaluation import evaluate_algorithm
@@ -26,7 +27,7 @@ class DataFiles:
 
 class Runner:
 
-    def __init__(self, recommender, evaluate=True, split='prob', export=False, use_validation=False):
+    def __init__(self, recommender, evaluate=True, split='loo', export=False, use_validation=False):
         self.urm = None
         self.icm = None
         self.target_users = None
@@ -37,26 +38,51 @@ class Runner:
         self.validation = use_validation
 
     @staticmethod
-    def load_icm_csv(filename):
+    def load_icm_csv(filename, third_type):
         data = load_csv(filename)
-        data = [[int(row[i]) if i <= 1 else float(row[i]) for i in range(len(row))] for row in data]
+        data = [[int(row[i]) if i <= 1 else third_type(row[i]) for i in range(len(row))] for row in data]
         items, features, values = map(np.array, zip(*data))
         return items, features, values
+
+    @staticmethod
+    def encode_values(values):
+        le = LabelEncoder()
+        le.fit(values)
+        return le.transform(values)
+
+    def build_icm(self):
+        # PRICE
+        price_icm_items, _, price_icm_values = Runner.load_icm_csv(DataFiles.ICM_PRICE, third_type=float)
+        price_icm_values = Runner.encode_values(price_icm_values)
+        n_items = self.urm.shape[1]
+        n_features = max(price_icm_values) + 1
+        shape = (n_items, n_features)
+        ones = np.ones(len(price_icm_values))
+        price_icm = sps.csr_matrix((ones, (price_icm_items, price_icm_values)), shape=shape, dtype=int)
+
+        # ASSET
+        asset_icm_items, _, asset_icm_values = Runner.load_icm_csv(DataFiles.ICM_ASSET, third_type=float)
+        asset_icm_values += 1
+        asset_icm_values = Runner.encode_values(asset_icm_values)
+        n_features = max(asset_icm_values) + 1
+        shape = (n_items, n_features)
+        ones = np.ones(len(asset_icm_values))
+        asset_icm = sps.csr_matrix((ones, (asset_icm_items, asset_icm_values)), shape=shape, dtype=int)
+
+        # SUBCLASS
+        subclass_icm_items, subclass_icm_features, subclass_icm_values = Runner.load_icm_csv(DataFiles.ICM_SUBCLASS, third_type=float)
+        n_features = max(subclass_icm_features) + 1
+        shape = (n_items, n_features)
+        subclass_icm = sps.csr_matrix((subclass_icm_values, (subclass_icm_items, subclass_icm_features)), shape=shape, dtype=int)
+
+        self.icm = sps.hstack((price_icm, asset_icm, subclass_icm)).tocsr()
 
     def prepare_data(self):
         urm_data = load_csv(DataFiles.TRAIN)
         urm_data = [[int(row[i]) if i <= 1 else int(float(row[i])) for i in range(len(row))] for row in urm_data]
         users, items, ratings = map(np.array, zip(*urm_data))
         self.urm = sps.coo_matrix((ratings, (users, items)))
-        price_icm_items, price_icm_features, price_icm_values = Runner.load_icm_csv(DataFiles.ICM_PRICE)
-        asset_icm_items, asset_icm_features, asset_icm_values = Runner.load_icm_csv(DataFiles.ICM_ASSET)
-        asset_icm_features += 1     # asset had feature number 0, now it's 1
-        subclass_icm_items, subclass_icm_features, subclass_icm_values = Runner.load_icm_csv(DataFiles.ICM_SUBCLASS)
-        subclass_icm_features += 1  # subclass numbers starts from 1, so we add 1 to make room for price and asset
-        icm_items = np.concatenate((price_icm_items, asset_icm_items, subclass_icm_items))
-        icm_features = np.concatenate((price_icm_features, asset_icm_features, subclass_icm_features))
-        icm_values = np.concatenate((price_icm_values, asset_icm_values, subclass_icm_values))
-        self.icm = sps.csr_matrix((icm_values, (icm_items, icm_features)))
+        self.build_icm()
         self.target_users = load_csv(DataFiles.TARGET_USERS_TEST)
         self.target_users = [int(x[0]) for x in self.target_users]
         if self.evaluate:
