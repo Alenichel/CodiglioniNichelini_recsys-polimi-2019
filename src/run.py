@@ -198,4 +198,4 @@ if __name__ == '__main__':
     elif args.recommender == 'slim-bpr':
         print('Using SLIM (BPR)')
         recommender = SLIM_BPR()
-    Runner(recommender, args.evaluate, args.split, args.no_export, args.use_validation_set).run(requires_icm=(args.recommender == 'cbf'))
+    Runner(recommender, args.evaluate, args.split, args.no_export, args.use_validation_set).run(requires_icm=(args.recommender in ['cbf', 'cf']))

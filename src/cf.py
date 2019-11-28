@@ -4,18 +4,19 @@ import numpy as np
 from helper import TailBoost
 from Base.Similarity.Compute_Similarity_Python import Compute_Similarity_Python
 from basic_recommenders import TopPopRecommender
+from cbf import ItemCBFKNNRecommender
 
 
 class ItemCFKNNRecommender(object):
 
-    def __init__(self, use_tail_boost=True):
+    def __init__(self, use_tail_boost=False):
         self.urm = None
         self.w_sparse = None
         self.use_tail_boost = use_tail_boost
         self.tb = None
-        self.fallback_recommender = TopPopRecommender()
+        self.fallback_recommender = ItemCBFKNNRecommender()
 
-    def fit(self, urm, top_k=10, shrink=50, normalize=True, similarity='cosine'):
+    def fit(self, urm, icm=None, top_k=5, shrink=20, normalize=True, similarity='tanimoto'):
         print('top_k={0}, shrink={1}'.format(top_k, shrink))
         self.urm = urm.tocsr()
         if self.use_tail_boost:
@@ -27,7 +28,7 @@ class ItemCFKNNRecommender(object):
                                                       topK=top_k, normalize=normalize,
                                                       similarity=similarity)
         self.w_sparse = similarity_object.compute_similarity()
-        self.fallback_recommender.fit(urm)
+        self.fallback_recommender.fit(urm, icm)
 
     def recommend(self, user_id, at=None, exclude_seen=True):
         # compute the scores using the dot product
