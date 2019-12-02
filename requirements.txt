@@ -2,4 +2,4 @@ numpy
 scipy
 cython
 sklearn
-pandas
+tqdm
