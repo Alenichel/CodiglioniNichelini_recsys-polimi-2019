@@ -6,6 +6,7 @@ import scipy.sparse as sps
 from sklearn.preprocessing import LabelEncoder
 from time import time
 from datetime import timedelta
+from tqdm import tqdm
 from evaluation import evaluate_algorithm
 from load_export_csv import load_csv, export_csv
 from basic_recommenders import RandomRecommender, TopPopRecommender
@@ -114,7 +115,7 @@ class Runner:
         num_items = urm.shape[1]
         urm_train = urm.copy()
         urm_test = np.zeros((num_users, num_items))
-        for user_id in range(num_users):
+        for user_id in tqdm(range(num_users)):
             start_pos = urm_train.indptr[user_id]
             end_pos = urm_train.indptr[user_id + 1]
             user_profile = urm_train.indices[start_pos:end_pos]
@@ -130,12 +131,13 @@ class Runner:
     def run(self, requires_icm=False):
         print('Preparing data...')
         urm_train, urm_test = self.prepare_data()
+        urm_validation = None
         if self.validation:
             urm_train, urm_validation = Runner.train_test_split(urm_train)
         print('OK\nFitting...')
         if requires_icm:
             recommender.fit(urm_train, self.icm)
-        elif self.validation:
+        elif self.validation and urm_validation:
             recommender.fit(urm_train, urm_validation)
         else:
             recommender.fit(urm_train)

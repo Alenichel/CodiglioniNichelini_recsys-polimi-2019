@@ -4,6 +4,7 @@ from time import time
 from datetime import timedelta
 import numpy as np
 from scipy.special import expit
+from tqdm import tqdm
 from basic_recommenders import TopPopRecommender
 from Base.Recommender_utils import similarityMatrixTopK
 
@@ -40,7 +41,7 @@ class SLIM_BPR:
             start_time_epoch = time()
             self.epoch_iteration()
             elapsed_time = timedelta(seconds=time() - start_time_epoch)
-            print("Epoch {0} of {1} completed in {2}.".format(currentEpoch+1, epochs, elapsed_time))
+            print("\nEpoch {0} of {1} completed in {2}.".format(currentEpoch+1, epochs, elapsed_time))
         elapsed_time = timedelta(seconds=int(time() - start_time_train))
         print("Train completed in {0}.".format(elapsed_time))
         # The similarity matrix is learnt row-wise
@@ -54,23 +55,9 @@ class SLIM_BPR:
 
     def epoch_iteration(self):
         num_positive_interactions = int(self.urm_train.nnz * 0.01)
-        start_time = time()
-        batch_size = 10000
-        start_time_batch = start_time
-        for num_sample in range(num_positive_interactions):
+        for num_sample in tqdm(range(num_positive_interactions)):
             user_id, pos_item_id, neg_item_id = self.sample_triple()
             self.update_factors(user_id, pos_item_id, neg_item_id)
-            if num_sample % batch_size == 0 and num_sample > 0:
-                elapsed = timedelta(seconds=int(time()-start_time))
-                samples_ps = batch_size / (time() - start_time_batch)
-                eta = timedelta(seconds=int((num_positive_interactions - num_sample) / samples_ps))
-                print('Processed {0:7.0f} samples ( {1:5.2f}% ) in {2} | Samples/s: {3:6.1f} | ETA: {4}'.format(
-                    num_sample,
-                    100.0 * float(num_sample)/num_positive_interactions,
-                    elapsed,
-                    samples_ps,
-                    eta))
-                start_time_batch = time()
 
     def update_factors(self, user_id, pos_item_id, neg_item_id):
         # Calculate current predicted score

@@ -4,6 +4,7 @@ import numpy as np
 import scipy.sparse as sps
 from time import time
 from datetime import timedelta
+from tqdm import tqdm
 
 
 def precision(is_relevant, relevant_items):
@@ -30,10 +31,7 @@ def evaluate_algorithm(urm_test, recommender_object, at=10):
     num_eval = 0
     urm_test = sps.csr_matrix(urm_test)
     n_users = urm_test.shape[0]
-    batch_size = 5000
-    start_time = time()
-    start_time_batch = start_time
-    for user_id in range(n_users):
+    for user_id in tqdm(range(n_users)):
         start_pos = urm_test.indptr[user_id]
         end_pos = urm_test.indptr[user_id+1]
         if end_pos - start_pos > 0:
@@ -44,17 +42,6 @@ def evaluate_algorithm(urm_test, recommender_object, at=10):
             cumulative_precision += precision(is_relevant, relevant_items)
             cumulative_recall += recall(is_relevant, relevant_items)
             cumulative_MAP += MAP(is_relevant, relevant_items)
-        if user_id % batch_size == 0 and user_id > 0:
-            elapsed = timedelta(seconds=int(time() - start_time))
-            samples_ps = batch_size / (time() - start_time_batch)
-            eta = timedelta(seconds=int((n_users - user_id) / samples_ps))
-            print("Evaluated user {0:7.0f} ( {1:5.2f}% ) in {2} | Users/s: {3:6.1f} | ETA: {4}".format(
-                user_id,
-                100.0 * (user_id / n_users),
-                elapsed,
-                samples_ps,
-                eta))
-            start_time_batch = time()
     cumulative_precision /= num_eval
     cumulative_recall /= num_eval
     cumulative_MAP /= num_eval

@@ -16,7 +16,7 @@ class ItemCFKNNRecommender(object):
         self.tb = None
         self.fallback_recommender = ItemCBFKNNRecommender()
 
-    def fit(self, urm, icm=None, top_k=5, shrink=20, normalize=True, similarity='tanimoto'):
+    def fit(self, urm, icm=None, top_k=50, shrink=20, normalize=True, similarity='tanimoto'):
         print('top_k={0}, shrink={1}'.format(top_k, shrink))
         self.urm = urm.tocsr()
         if self.use_tail_boost:
