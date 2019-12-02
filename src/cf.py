@@ -4,7 +4,6 @@ import numpy as np
 from run_utils import build_all_matrices, train_test_split, evaluate, export, SplitType
 from helper import TailBoost
 from Base.Similarity.Compute_Similarity_Python import Compute_Similarity_Python
-from basic_recommenders import TopPopRecommender
 from cbf import ItemCBFKNNRecommender
 
 
@@ -65,4 +64,3 @@ if __name__ == '__main__':
         export(target_users, cf_rec)
     else:
         evaluate(cf_rec, urm_test)
-
