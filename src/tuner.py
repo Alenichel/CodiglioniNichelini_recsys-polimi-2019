@@ -1,8 +1,8 @@
 
-from run import DataFiles, Runner
+from run_utils import build_urm, train_test_split
 from cf import ItemCFKNNRecommender
 from enum import Enum
-from load_export_csv import load_csv, export_csv
+from csv_utils import load_csv, export_csv
 from evaluation import evaluate_algorithm
 import numpy as np
 import scipy.sparse as sps
@@ -37,24 +37,6 @@ class Tuner:
         for n in range(5, DEFAULT_SHRINK * 2 + 1, step):
             shrink_parameter_pool.append(n)
 
-    def prepare_data(self):
-        urm_data = load_csv(DataFiles.TRAIN)
-        urm_data = [[int(row[i]) if i <= 1 else int(float(row[i])) for i in range(len(row))] for row in urm_data]
-        users, items, ratings = map(np.array, zip(*urm_data))
-        self.urm = sps.coo_matrix((ratings, (users, items)))
-        price_icm_items, price_icm_features, price_icm_values = Runner.load_icm_csv(DataFiles.ICM_PRICE)
-        asset_icm_items, asset_icm_features, asset_icm_values = Runner.load_icm_csv(DataFiles.ICM_ASSET)
-        asset_icm_features += 1     # asset had feature number 0, now it's 1
-        subclass_icm_items, subclass_icm_features, subclass_icm_values = Runner.load_icm_csv(DataFiles.ICM_SUBCLASS)
-        subclass_icm_features += 1  # subclass numbers starts from 1, so we add 1 to make room for price and asset
-        icm_items = np.concatenate((price_icm_items, asset_icm_items, subclass_icm_items))
-        icm_features = np.concatenate((price_icm_features, asset_icm_features, subclass_icm_features))
-        icm_values = np.concatenate((price_icm_values, asset_icm_values, subclass_icm_values))
-        self.icm = sps.csr_matrix((icm_values, (icm_items, icm_features)))
-        self.target_users = load_csv(DataFiles.TARGET_USERS_TEST)
-        self.target_users = [int(x[0]) for x in self.target_users]
-        return Runner.train_test_loo_split(self.urm)
-
     def run_tuner(self):
         list_of_parameters = list()
 
@@ -77,7 +59,8 @@ class Tuner:
                 for shrink_param in shrink_parameter_pool:
                     print('\n\n\nEvaluating CF with %s similarity, %d top_k, %d shrink' % (sim_func.value, top_k_param, shrink_param))
                     print('Preparing data...')
-                    urm_train, urm_test = self.prepare_data()
+                    urm = build_urm()
+                    urm_train, urm_test = train_test_split(urm)
                     print('OK\nFitting...')
                     recommender.fit(urm_train)
                     print('Evaluating...')
@@ -111,7 +94,8 @@ class Tuner:
             print('\n\n\nEvaluating CF with %s similarity, %d top_k, %d shrink (ROUND %d)'
                   % (similarity, top_k, shrink, n))
             print('Preparing data...')
-            urm_train, urm_test = self.prepare_data()
+            urm = build_urm()
+            urm_train, urm_test = train_test_split(urm)
             print('OK\nFitting...')
             recommender.fit(urm_train)
             print('Evaluating...')
