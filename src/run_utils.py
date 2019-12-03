@@ -80,7 +80,7 @@ def train_test_split(urm, split_type=SplitType.LOO, split=0.8):
 
 def evaluate(recommender, urm_test):
     print('Evaluating...')
-    evaluate_algorithm(urm_test, recommender)
+    return evaluate_algorithm(urm_test, recommender)
 
 
 def export(target_users, recommender):
