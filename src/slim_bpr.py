@@ -3,10 +3,13 @@
 from time import time
 from datetime import timedelta
 import numpy as np
+import scipy.sparse as sps
 from scipy.special import expit
-from tqdm import tqdm
-from basic_recommenders import TopPopRecommender
+from tqdm import trange
+from cbf import ItemCBFKNNRecommender
+from helper import TailBoost
 from Base.Recommender_utils import similarityMatrixTopK
+from run_utils import build_all_matrices, train_test_split, SplitType, evaluate, export
 
 
 class SLIM_BPR:
@@ -15,33 +18,28 @@ class SLIM_BPR:
     The code is identical with no optimizations
     """
 
-    def __init__(self, lambda_i=0.0025, lambda_j=0.00025, learning_rate=0.01):
+    def __init__(self, lambda_i=0.0025, lambda_j=0.00025, learning_rate=0.05, fallback_recommender=None, use_tailboost=False):
         self.urm_train = None
         self.n_users = None
         self.n_items = None
         self.lambda_i = lambda_i
         self.lambda_j = lambda_j
         self.learning_rate = learning_rate
-        self.normalize = False
-        self.sparse_weights = False
         self.S = None
         self.W = None
-        self.fallback_recommender = TopPopRecommender()
+        self.fallback_recommender = fallback_recommender
+        self.use_tailboost = use_tailboost
+        self.tb = None
 
-    def fit(self, urm_train, epochs=300):
+    def fit(self, urm_train, epochs=30):
         self.urm_train = urm_train.tocsr()
         self.n_users = urm_train.shape[0]
         self.n_items = urm_train.shape[1]
-        # Initialize similarity with random values and zero-out diagonal
-        #self.S = np.random.random((self.n_items, self.n_items)).astype('float32')
-        #self.S[np.arange(self.n_items), np.arange(self.n_items)] = 0
         self.S = np.zeros((self.n_items, self.n_items), dtype=float)
         start_time_train = time()
-        for currentEpoch in range(epochs):
+        for currentEpoch in trange(epochs, desc='Epochs'):
             start_time_epoch = time()
             self.epoch_iteration()
-            elapsed_time = timedelta(seconds=time() - start_time_epoch)
-            print("\nEpoch {0} of {1} completed in {2}.".format(currentEpoch+1, epochs, elapsed_time))
         elapsed_time = timedelta(seconds=int(time() - start_time_train))
         print("Train completed in {0}.".format(elapsed_time))
         # The similarity matrix is learnt row-wise
@@ -49,13 +47,14 @@ class SLIM_BPR:
         self.W = self.S.T
         del self.S
         # TODO: Check
-        self.W = similarityMatrixTopK(self.W, verbose=True).tocsr()
+        #self.W = similarityMatrixTopK(self.W, verbose=True).tocsr()
+        self.W = sps.csr_matrix(self.W)
         self.W.eliminate_zeros()
-        self.fallback_recommender.fit(self.urm_train)
+        self.tb = TailBoost(urm_train)
 
     def epoch_iteration(self):
         num_positive_interactions = int(self.urm_train.nnz * 0.01)
-        for num_sample in tqdm(range(num_positive_interactions)):
+        for num_sample in trange(num_positive_interactions, desc='Epoch iteration'):
             user_id, pos_item_id, neg_item_id = self.sample_triple()
             self.update_factors(user_id, pos_item_id, neg_item_id)
 
@@ -101,13 +100,14 @@ class SLIM_BPR:
     def recommend(self, user_id, at=10, exclude_seen=True):
         # compute the scores using the dot product
         user_profile = self.urm_train[user_id]
-        if user_profile.nnz == 0:
+        if self.fallback_recommender and user_profile.nnz == 0:
             return self.fallback_recommender.recommend(user_id, at, exclude_seen)
         scores = user_profile.dot(self.W)
         scores = scores.toarray().ravel()
         if exclude_seen:
             scores = self.filter_seen(user_id, scores)
-        # rank items
+        if self.use_tailboost:
+            scores = self.tb.update_scores(scores)
         ranking = scores.argsort()[::-1]
         return ranking[:at]
 
@@ -117,3 +117,21 @@ class SLIM_BPR:
         user_profile = self.urm_train.indices[start_pos:end_pos]
         scores[user_profile] = -np.inf
         return scores
+
+
+if __name__ == '__main__':
+    EXPORT = False
+    urm, icm, target_users = build_all_matrices()
+    if EXPORT:
+        urm_train = urm
+        urm_test = None
+    else:
+        urm_train, urm_test = train_test_split(urm, SplitType.LOO)
+    #cbf_rec = ItemCBFKNNRecommender()
+    #cbf_rec.fit(urm_train, icm)
+    slim_rec = SLIM_BPR(use_tailboost=True)
+    slim_rec.fit(urm_train, epochs=15)
+    if EXPORT:
+        export(target_users, slim_rec)
+    else:
+        evaluate(slim_rec, urm_test)
