@@ -3,26 +3,26 @@
 import numpy as np
 import scipy.sparse as sps
 from scipy.special import expit
-from time import time
-from datetime import timedelta
+from tqdm import trange
+from run_utils import build_all_matrices, train_test_split, SplitType, evaluate, export
 from helper import TailBoost
-from evaluation import evaluate_algorithm
 from Base.Recommender_utils import similarityMatrixTopK
 
 
 class SLIM_BPR_Recommender:
     """SLIM_BPR recommender with cosine similarity and no shrinkage"""
 
-    def __init__(self):
+    def __init__(self, use_tailboost=False, fallback_recommender=None):
         self.urm = None
         self.n_users = None
         self.n_items = None
+        self.use_tailboost = use_tailboost
         self.tb = None
         self.eligible_users = None
         self.learning_rate = None
         self.epochs = None
         self.similarity_matrix = None
-        self.urm_validation = None
+        self.fallback_recommender = fallback_recommender
 
     def sample_triplet(self):
         # By randomly selecting a user in this way we could end up
@@ -46,12 +46,8 @@ class SLIM_BPR_Recommender:
         # Get number of available interactions
         num_positive_interactions = int(self.urm.nnz * 0.01)
 
-        batch_size = 5000
-        start_time = time()
-        start_time_batch = time()
-
         # Uniform user sampling without replacement
-        for num_sample in range(num_positive_interactions):
+        for num_sample in trange(num_positive_interactions, desc='Epoch iteration'):
             # Sample
             user_id, positive_item_id, negative_item_id = self.sample_triplet()
             user_seen_items = self.urm[user_id, :].indices
@@ -61,35 +57,21 @@ class SLIM_BPR_Recommender:
             # Gradient
             x_ij = x_i - x_j
             gradient = expit(-x_ij)
-            #gradient = 1 / (1 + np.exp(x_ij))
             # Update
             self.similarity_matrix[positive_item_id, user_seen_items] += self.learning_rate * gradient
             self.similarity_matrix[positive_item_id, positive_item_id] = 0
             self.similarity_matrix[negative_item_id, user_seen_items] -= self.learning_rate * gradient
             self.similarity_matrix[negative_item_id, negative_item_id] = 0
-            if num_sample % batch_size == 0 and num_sample > 0:
-                elapsed = timedelta(seconds=int(time() - start_time))
-                samples_ps = batch_size / (time() - start_time_batch)
-                eta = timedelta(seconds=int((num_positive_interactions - num_sample) / samples_ps))
-                print('Processed {0:7.0f} samples ( {1:5.2f}% ) in {2} | Samples/s: {3:4.0f} | ETA: {4}'.format(
-                    num_sample,
-                    100.0 * float(num_sample) / num_positive_interactions,
-                    elapsed,
-                    samples_ps,
-                    eta))
-                start_time_batch = time()
 
-    def fit(self, urm, urm_validation=None, learning_rate=0.01, epochs=100):
+    def fit(self, urm, learning_rate=0.01, epochs=10):
         self.urm = urm.tocsr()
-        if urm_validation is not None:
-            self.urm_validation = urm_validation.tocsr()
         self.n_users = self.urm.shape[0]
         self.n_items = self.urm.shape[1]
         self.similarity_matrix = np.zeros((self.n_items, self.n_items))
         self.tb = TailBoost(self.urm)
         # Extract users having at least one interaction to choose from
         self.eligible_users = []
-        for user_id in range(self.n_users):
+        for user_id in trange(self.n_users, desc='Eligible users'):
             start_pos = self.urm.indptr[user_id]
             end_pos = self.urm.indptr[user_id + 1]
             if len(self.urm.indices[start_pos:end_pos]) > 0:
@@ -97,25 +79,8 @@ class SLIM_BPR_Recommender:
         self.learning_rate = learning_rate
         self.epochs = epochs
 
-        start_time_train = time()
-
-        last_MAP = 0
-        for currentEpoch in range(self.epochs):
-            start_time_epoch = time()
+        for _ in trange(self.epochs, desc='Epochs'):
             self.epoch_iteration()
-            if urm_validation is not None:
-                self.similarity_matrix = sps.csr_matrix(self.similarity_matrix.T)
-                self.similarity_matrix.eliminate_zeros()
-                MAP = evaluate_algorithm(urm_validation, self)['MAP']
-                self.similarity_matrix = self.similarity_matrix.todense().T
-                if MAP < last_MAP:
-                    print("Early stopping at {0}".format(currentEpoch))
-                    break
-                last_MAP = MAP
-            elapsed_time = timedelta(seconds=int(time() - start_time_epoch))
-            print("Epoch {0} of {1} complete in {2}.".format(currentEpoch + 1, epochs, elapsed_time))
-
-        print("Train completed in {:.2f} minutes".format(int(time()-start_time_train)/60))
 
         self.similarity_matrix = self.similarity_matrix.T
         self.similarity_matrix = sps.csr_matrix(self.similarity_matrix)
@@ -129,6 +94,8 @@ class SLIM_BPR_Recommender:
         scores = scores.toarray().ravel()
         if exclude_seen:
             scores = self.filter_seen(user_id, scores)
+        if self.use_tailboost:
+            scores = self.tb.update_scores(scores)
         # rank items
         ranking = scores.argsort()[::-1]
         return ranking[:at]
@@ -139,3 +106,21 @@ class SLIM_BPR_Recommender:
         user_profile = self.urm.indices[start_pos:end_pos]
         scores[user_profile] = -np.inf
         return scores
+
+
+if __name__ == '__main__':
+    EXPORT = False
+    urm, icm, target_users = build_all_matrices()
+    if EXPORT:
+        urm_train = urm
+        urm_test = None
+    else:
+        urm_train, urm_test = train_test_split(urm, SplitType.LOO)
+    #cbf_rec = ItemCBFKNNRecommender()
+    #cbf_rec.fit(urm_train, icm)
+    slim_rec = SLIM_BPR_Recommender(use_tailboost=True)
+    slim_rec.fit(urm_train, epochs=100)
+    if EXPORT:
+        export(target_users, slim_rec)
+    else:
+        evaluate(slim_rec, urm_test)
