@@ -39,7 +39,7 @@ if __name__ == '__main__':
     EXPORT = False
     urm, icm, target_users = build_all_matrices()
     if EXPORT:
-        urm_train = urm
+        urm_train = urm.tocsr()
         urm_test = None
     else:
         urm_train, urm_test = train_test_split(urm, SplitType.LOO)
@@ -49,7 +49,7 @@ if __name__ == '__main__':
     cf_rec = ItemCFKNNRecommender(fallback_recommender=cbf_rec)
     cf_rec.fit(urm_train, top_k=5, shrink=20, similarity='tanimoto')
     slim_rec = SLIM_BPR(use_tailboost=True, fallback_recommender=cbf_rec)
-    slim_rec.fit(urm_train, epochs=100)
+    slim_rec.fit(urm_train, epochs=1)
     rec = HybridRecommender([cf_rec, cbf_rec, slim_rec])
     if EXPORT:
         export(target_users, cf_rec)
