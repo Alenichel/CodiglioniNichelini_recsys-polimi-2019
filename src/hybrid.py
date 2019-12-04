@@ -49,7 +49,7 @@ if __name__ == '__main__':
     cf_rec = ItemCFKNNRecommender(fallback_recommender=cbf_rec)
     cf_rec.fit(urm_train, top_k=5, shrink=20, similarity='tanimoto')
     slim_rec = SLIM_BPR(use_tailboost=True, fallback_recommender=cbf_rec)
-    slim_rec.fit(urm_train, epochs=1)
+    slim_rec.fit(urm_train, epochs=100)
     rec = HybridRecommender([cf_rec, cbf_rec, slim_rec])
     if EXPORT:
         export(target_users, cf_rec)
