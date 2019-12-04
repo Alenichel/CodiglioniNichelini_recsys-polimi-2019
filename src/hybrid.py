@@ -41,7 +41,7 @@ class HybridRecommender:
 
     def recommend_lists_rr(self, user_id, at=10, exclude_seen=True):
         recommendations = [recommender.recommend(user_id, exclude_seen=exclude_seen) for recommender in self.recommenders]
-        return round_robin_list_merger(recommendations)[:at]
+        return round_robin_list_merger(recommendations, at=at)[:at]
 
     def recommend_lists_freq(self, user_id, at=10, exclude_seen=True):
         recommendations = [recommender.recommend(user_id, exclude_seen=exclude_seen) for recommender in self.recommenders]
@@ -93,7 +93,7 @@ if __name__ == '__main__':
         cf_rec = ItemCFKNNRecommender()
         cf_rec.fit(urm_train, top_k=5, shrink=20, similarity='tanimoto')
         slim_rec = SLIM_BPR(use_tailboost=True)
-        slim_rec.fit(urm_train, epochs=100)
+        slim_rec.fit(urm_train, epochs=1)
         rec = HybridRecommender([cf_rec, slim_rec, cbf_rec, tp_rec], merging_type=MergingTechniques.RR)
         if EXPORT:
             export(target_users, rec)

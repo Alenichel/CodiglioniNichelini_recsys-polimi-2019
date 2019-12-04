@@ -4,13 +4,12 @@ import numpy as np
 from collections import Counter
 
 
-def round_robin_list_merger(lists):
+def round_robin_list_merger(lists, at=10):
     n_lists = len(lists)
-    for i in range(n_lists - 1):
-        assert len(lists[i]) == len(lists[i+1])
-    list_len = len(lists[0])
+    for i in range(n_lists):
+        assert len(lists[i]) >= at
     final_list = list()
-    for idx in range(list_len):
+    for idx in range(at):
         for l in lists:
             final_list.append(l[idx])
     return final_list
