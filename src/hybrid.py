@@ -93,7 +93,7 @@ if __name__ == '__main__':
         cf_rec = ItemCFKNNRecommender()
         cf_rec.fit(urm_train, top_k=5, shrink=20, similarity='tanimoto')
         slim_rec = SLIM_BPR(use_tailboost=True)
-        slim_rec.fit(urm_train, epochs=1)
+        slim_rec.fit(urm_train, epochs=100)
         rec = HybridRecommender([cf_rec, slim_rec, cbf_rec, tp_rec], merging_type=MergingTechniques.RR)
         if EXPORT:
             export(target_users, rec)
