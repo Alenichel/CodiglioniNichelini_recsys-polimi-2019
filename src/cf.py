@@ -16,7 +16,7 @@ class ItemCFKNNRecommender(object):
         self.tb = None
         self.fallback_recommender = fallback_recommender    # NOTE: This should be already trained
 
-    def fit(self, urm, top_k=50, shrink=20, normalize=True, similarity='tanimoto'):
+    def fit(self, urm, top_k=5, shrink=20, normalize=True, similarity='tanimoto'):
         print('top_k={0}, shrink={1}, tail_bool={2}'.format(top_k, shrink, self.use_tail_boost))
         self.urm = urm.tocsr()
         if self.use_tail_boost:
@@ -26,15 +26,19 @@ class ItemCFKNNRecommender(object):
                                                       similarity=similarity)
         self.w_sparse = similarity_object.compute_similarity()
 
+    def get_scores(self, user_id, exclude_seen=True):
+        user_profile = self.urm[user_id]
+        scores = user_profile.dot(self.w_sparse).toarray().ravel()
+        if exclude_seen:
+            scores = self.filter_seen(user_id, scores)
+        return scores
+
     def recommend(self, user_id, at=None, exclude_seen=True):
-        # compute the scores using the dot product
         user_profile = self.urm[user_id]
         if user_profile.nnz == 0 and self.fallback_recommender:
             return self.fallback_recommender.recommend(user_id, at, exclude_seen)
         else:
-            scores = user_profile.dot(self.w_sparse).toarray().ravel()
-            if exclude_seen:
-                scores = self.filter_seen(user_id, scores)
+            scores = self.get_scores(user_id, exclude_seen)
             if self.use_tail_boost:
                 scores = self.tb.update_scores(scores)
             ranking = scores.argsort()[::-1]
@@ -57,9 +61,9 @@ if __name__ == '__main__':
     else:
         urm_train, urm_test = train_test_split(urm, SplitType.LOO)
     cbf_rec = ItemCBFKNNRecommender()
-    cbf_rec.fit(urm_train, icm)
+    cbf_rec.fit(urm_train, icm, top_k=5, shrink=20, similarity='tanimoto')
     cf_rec = ItemCFKNNRecommender(fallback_recommender=cbf_rec)
-    cf_rec.fit(urm_train)
+    cf_rec.fit(urm_train, top_k=5, shrink=20, similarity='tanimoto')
     if EXPORT:
         export(target_users, cf_rec)
     else:
