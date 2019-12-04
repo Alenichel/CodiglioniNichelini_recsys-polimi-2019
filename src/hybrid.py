@@ -2,7 +2,8 @@
 
 import numpy as np
 from run_utils import build_all_matrices, train_test_split, evaluate, export, SplitType
-from list_merge import round_robin_list_merger, frequency_list_merger
+from list_merge import round_robin_list_merger, frequency_list_merger, medrank
+from basic_recommenders import TopPopRecommender
 from cf import ItemCFKNNRecommender
 from cbf import ItemCBFKNNRecommender
 from slim_bpr import SLIM_BPR
@@ -14,12 +15,12 @@ class HybridRecommender:
         self.recommenders = recommenders
         self.weights = weights
         self.n_recommenders = len(recommenders)
-        self.recommend = self.recommend_lists_freq
+        self.recommend = self.recommend_lists_medrank
         print(self.recommend)
 
     def recommend_weights(self, user_id, at=10, exclude_seen=True):
         assert self.weights is not None
-        scores = [recommender.get_score(user_id, exclude_seen) for recommender in self.recommenders]
+        scores = [recommender.get_scores(user_id, exclude_seen) for recommender in self.recommenders]
         scores = [scores[i] * self.weights[i] for i in range(self.n_recommenders)]
         scores = np.array(scores)
         scores = scores.sum(axis=0)
@@ -34,6 +35,10 @@ class HybridRecommender:
         recommendations = [recommender.recommend(user_id, exclude_seen) for recommender in self.recommenders]
         return frequency_list_merger(recommendations)[:at]
 
+    def recommend_lists_medrank(self, user_id, at=10, exclude_seen=True):
+        recommendations = [recommender.recommend(user_id, exclude_seen) for recommender in self.recommenders]
+        return medrank(recommendations)[:at]
+
 
 if __name__ == '__main__':
     EXPORT = False
@@ -44,14 +49,16 @@ if __name__ == '__main__':
     else:
         urm_train, urm_test = train_test_split(urm, SplitType.LOO)
     n_users, n_items = urm_train.shape
+    tp_rec = TopPopRecommender()
+    tp_rec.fit(urm_train)
     cbf_rec = ItemCBFKNNRecommender()
     cbf_rec.fit(urm_train, icm, top_k=5, shrink=20, similarity='tanimoto')
-    cf_rec = ItemCFKNNRecommender(fallback_recommender=cbf_rec)
+    cf_rec = ItemCFKNNRecommender()
     cf_rec.fit(urm_train, top_k=5, shrink=20, similarity='tanimoto')
-    slim_rec = SLIM_BPR(use_tailboost=True, fallback_recommender=cbf_rec)
+    slim_rec = SLIM_BPR(use_tailboost=True)
     slim_rec.fit(urm_train, epochs=100)
-    rec = HybridRecommender([cf_rec, cbf_rec, slim_rec])
+    rec = HybridRecommender([cf_rec, slim_rec, cbf_rec, tp_rec])
     if EXPORT:
-        export(target_users, cf_rec)
+        export(target_users, rec)
     else:
-        evaluate(cf_rec, urm_test)
+        evaluate(rec, urm_test)
