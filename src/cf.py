@@ -53,7 +53,7 @@ class ItemCFKNNRecommender(object):
 
 
 if __name__ == '__main__':
-    EXPORT = False
+    EXPORT = True
     urm, icm, target_users = build_all_matrices()
     if EXPORT:
         urm_train = urm.tocsr()

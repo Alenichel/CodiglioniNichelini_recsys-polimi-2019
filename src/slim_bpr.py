@@ -92,7 +92,7 @@ class SLIM_BPR:
         pos_item_id, neg_item_id = self.sample_item_pair(user_id)
         return user_id, pos_item_id, neg_item_id
 
-    def recommend(self, user_id, at=10, exclude_seen=True):
+    def recommend(self, user_id, at=None, exclude_seen=True):
         # compute the scores using the dot product
         user_profile = self.urm_train[user_id]
         if self.fallback_recommender and user_profile.nnz == 0:
