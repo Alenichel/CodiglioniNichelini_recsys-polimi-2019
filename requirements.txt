@@ -4,3 +4,4 @@ cython
 sklearn
 tqdm
 lightfm
+matplotlib

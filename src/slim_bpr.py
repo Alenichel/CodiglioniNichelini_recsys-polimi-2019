@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 
-from time import time
-from datetime import timedelta
 import numpy as np
 import scipy.sparse as sps
 from scipy.special import expit
 from tqdm import trange
+from basic_recommenders import TopPopRecommender
 from cbf import ItemCBFKNNRecommender
 from helper import TailBoost
 from Base.Recommender_utils import similarityMatrixTopK
@@ -36,25 +35,21 @@ class SLIM_BPR:
         self.n_users = urm_train.shape[0]
         self.n_items = urm_train.shape[1]
         self.S = np.zeros((self.n_items, self.n_items), dtype=float)
-        start_time_train = time()
-        for currentEpoch in trange(epochs, desc='Epochs'):
-            start_time_epoch = time()
+        for _ in trange(epochs, desc='Epochs'):
             self.epoch_iteration()
-        elapsed_time = timedelta(seconds=int(time() - start_time_train))
-        print("Train completed in {0}.".format(elapsed_time))
         # The similarity matrix is learnt row-wise
         # To be used in the product URM*S must be transposed to be column-wise
         self.W = self.S.T
         del self.S
         # TODO: Check
-        #self.W = similarityMatrixTopK(self.W, verbose=True).tocsr()
+        self.W = similarityMatrixTopK(self.W, verbose=True).tocsr()
         self.W = sps.csr_matrix(self.W)
         self.W.eliminate_zeros()
         self.tb = TailBoost(urm_train)
 
     def epoch_iteration(self):
         num_positive_interactions = int(self.urm_train.nnz * 0.01)
-        for num_sample in trange(num_positive_interactions, desc='Epoch iteration'):
+        for _ in trange(num_positive_interactions, desc='Epoch iteration'):
             user_id, pos_item_id, neg_item_id = self.sample_triple()
             self.update_factors(user_id, pos_item_id, neg_item_id)
 
@@ -126,10 +121,12 @@ if __name__ == '__main__':
         urm_train = urm
         urm_test = None
     else:
-        urm_train, urm_test = train_test_split(urm, SplitType.LOO)
-    #cbf_rec = ItemCBFKNNRecommender()
-    #cbf_rec.fit(urm_train, icm)
-    slim_rec = SLIM_BPR(use_tailboost=True)
+        urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
+    cbf_rec = ItemCBFKNNRecommender()
+    cbf_rec.fit(urm_train, icm)
+    tp_rec = TopPopRecommender()
+    tp_rec.fit(urm_train)
+    slim_rec = SLIM_BPR(use_tailboost=False, fallback_recommender=tp_rec)
     slim_rec.fit(urm_train, epochs=15)
     if EXPORT:
         export(target_users, slim_rec)
