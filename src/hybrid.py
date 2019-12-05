@@ -45,16 +45,16 @@ class HybridRecommender:
         return ranking[:at]
 
     def recommend_lists_rr(self, user_id, at=10, exclude_seen=True):
-        recommendations = [recommender.recommend(user_id, exclude_seen=exclude_seen) for recommender in self.recommenders]
-        return round_robin_list_merger(recommendations, at=at)[:at]
+        recommendations = [recommender.recommend(user_id, at=at, exclude_seen=exclude_seen) for recommender in self.recommenders]
+        return round_robin_list_merger(recommendations)[:at]
 
     def recommend_lists_freq(self, user_id, at=10, exclude_seen=True):
-        recommendations = [recommender.recommend(user_id, exclude_seen=exclude_seen) for recommender in self.recommenders]
-        return frequency_list_merger(recommendations, at=at)[:at]
+        recommendations = [recommender.recommend(user_id, at=at, exclude_seen=exclude_seen) for recommender in self.recommenders]
+        return frequency_list_merger(recommendations)[:at]
 
     def recommend_lists_medrank(self, user_id, at=10, exclude_seen=True):
-        recommendations = [recommender.recommend(user_id, exclude_seen=exclude_seen) for recommender in self.recommenders]
-        return medrank(recommendations, at=at)[:at]
+        recommendations = [recommender.recommend(user_id, at=at, exclude_seen=exclude_seen) for recommender in self.recommenders]
+        return medrank(recommendations)[:at]
 
 
 if __name__ == '__main__':
@@ -99,7 +99,7 @@ if __name__ == '__main__':
         cf_rec.fit(urm_train, top_k=5, shrink=20, similarity='tanimoto')
         slim_rec = SLIM_BPR()
         slim_rec.fit(urm_train, epochs=100)
-        rec = HybridRecommender([cf_rec, slim_rec], merging_type=MergingTechniques.FREQ)
+        rec = HybridRecommender([cf_rec, slim_rec, cbf_rec, tp_rec], merging_type=MergingTechniques.RR)
         if EXPORT:
             export(target_users, rec)
         else:
