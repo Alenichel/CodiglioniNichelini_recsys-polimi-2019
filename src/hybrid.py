@@ -58,7 +58,30 @@ class HybridRecommender:
 
 
 if __name__ == '__main__':
-    TUNER = 3
+    TUNER = 0
+
+    if TUNER == 0: # BEST ENTRY SO FAR
+        EXPORT = True
+        urm, icm, target_users = build_all_matrices()
+        if EXPORT:
+            urm_train = urm.tocsr()
+            urm_test = None
+        else:
+            urm_train, urm_test = train_test_split(urm, SplitType.LOO)
+        n_users, n_items = urm_train.shape
+        tp_rec = TopPopRecommender()
+        tp_rec.fit(urm_train)
+        cf_rec1 = ItemCFKNNRecommender(fallback_recommender=tp_rec)
+        cf_rec1.fit(urm_train, top_k=5, shrink=20, similarity='tanimoto')
+        cf_rec2 = ItemCFKNNRecommender(fallback_recommender=tp_rec)
+        cf_rec2.fit(urm_train, top_k=5, shrink=35, similarity='cosine')
+        cf_rec3 = ItemCFKNNRecommender(fallback_recommender=tp_rec)
+        cf_rec3.fit(urm_train, top_k=10, shrink=20, similarity='asymmetric')
+        rec = HybridRecommender([cf_rec1, cf_rec2, cf_rec3], merging_type=MergingTechniques.RR)
+        if EXPORT:
+            export(target_users, rec)
+        else:
+            evaluate(rec, urm_test)
 
     if TUNER == 1:
         ROUND = 5
