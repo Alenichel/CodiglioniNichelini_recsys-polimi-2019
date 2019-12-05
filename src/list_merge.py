@@ -3,30 +3,29 @@
 import numpy as np
 
 
-def round_robin_list_merger(lists, at=10):
-    n_lists = len(lists)
-    for i in range(n_lists):
-        assert len(lists[i]) >= at
+def round_robin_list_merger(lists):
+    list_len = min(map(lambda x: len(x), lists))
     final_list = list()
-    for idx in range(at):
+    for idx in range(list_len):
         for l in lists:
             if l[idx] not in final_list:
                 final_list.append(l[idx])
     return final_list
 
 
-def frequency_list_merger(lists, at=10):
-    v = np.concatenate([l[:at] for l in lists])
+def frequency_list_merger(lists):
+    v = np.concatenate(lists)
     unique, count = np.unique(v, return_counts=True)
     count_descending = count.argsort()[::-1]
     return unique[count_descending]
 
 
-def medrank(lists, at=10):
+def medrank(lists):
     n_lists = len(lists)
+    list_len = min(map(lambda x: len(x), lists))
     rank = dict()
-    for l_idx in range(n_lists):
-        for idx in range(at):
+    for idx in range(list_len):
+        for l_idx in range(n_lists):
             item = lists[l_idx][idx]
             if item in rank:
                 rank[item][l_idx] = idx+1
@@ -43,4 +42,4 @@ if __name__ == '__main__':
     l1 = ['Ibis', 'Etap', 'Novotel', 'Mercure', 'Hilton', 'Sheraton', 'Crillon']
     l2 = ['Crillon', 'Novotel', 'Sheraton', 'Hilton', 'Ibis', 'Ritz', 'Lutetia']
     l3 = ['Le Roche', 'Lodge In', 'Ritz', 'Lutetia', 'Novotel', 'Sheraton', 'Mercure']
-    print(medrank([l1, l2, l3]))
+    print(medrank([l1, l2, l3], at=7))
