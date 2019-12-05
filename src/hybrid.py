@@ -58,8 +58,9 @@ class HybridRecommender:
 
 
 if __name__ == '__main__':
-    TUNER = False
-    if TUNER:
+    TUNER = 3
+
+    if TUNER == 1:
         ROUND = 5
         urm, icm, target_users = build_all_matrices()
         cumulativeMAP = 0
@@ -82,7 +83,8 @@ if __name__ == '__main__':
             cumulativeMAP += roundMAP
             print("median value so far %f (ROUND %d)" % (cumulativeMAP / (x + 1), x + 1))
         print(results.sort())
-    else:
+
+    elif TUNER == 2:
         EXPORT = False
         urm, icm, target_users = build_all_matrices()
         if EXPORT:
@@ -98,9 +100,32 @@ if __name__ == '__main__':
         cf_rec = ItemCFKNNRecommender()
         cf_rec.fit(urm_train, top_k=5, shrink=20, similarity='tanimoto')
         slim_rec = SLIM_BPR()
-        slim_rec.fit(urm_train, epochs=100)
+        slim_rec.fit(urm_train, epochs=1)
         rec = HybridRecommender([cf_rec, slim_rec], merging_type=MergingTechniques.FREQ)
         if EXPORT:
             export(target_users, rec)
         else:
             evaluate(rec, urm_test)
+
+    elif TUNER == 3:  #Hybrid fallback recommendation system (very bad idea)
+        EXPORT = True
+        urm, icm, target_users = build_all_matrices()
+        if EXPORT:
+            urm_train = urm.tocsr()
+            urm_test = None
+        else:
+            urm_train, urm_test = train_test_split(urm, SplitType.LOO)
+        n_users, n_items = urm_train.shape
+
+        tp_rec = TopPopRecommender()
+        tp_rec.fit(urm_train)
+        cbf_rec = ItemCBFKNNRecommender()
+        cbf_rec.fit(urm_train, icm, top_k=5, shrink=20, similarity='tanimoto')
+        h = HybridRecommender([cbf_rec, tp_rec], merging_type=MergingTechniques.RR)
+
+        cf_rec = ItemCFKNNRecommender(fallback_recommender=h)
+        cf_rec.fit(urm_train, top_k=5, shrink=20, similarity='tanimoto')
+        if EXPORT:
+            export(target_users, cf_rec)
+        else:
+            evaluate(cf_rec, urm_test)
