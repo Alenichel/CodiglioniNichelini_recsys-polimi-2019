@@ -15,8 +15,8 @@ def round_robin_list_merger(lists, at=10):
     return final_list
 
 
-def frequency_list_merger(lists):
-    v = np.concatenate(lists)
+def frequency_list_merger(lists, at=10):
+    v = np.concatenate([l[:at] for l in lists])
     unique, count = np.unique(v, return_counts=True)
     count_descending = count.argsort()[::-1]
     return unique[count_descending]
