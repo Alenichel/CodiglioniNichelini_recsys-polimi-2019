@@ -14,6 +14,7 @@ class MergingTechniques(Enum):
     WEIGHTS = 1
     RR = 2
     FREQ = 3
+    MEDRANK = 4
 
 
 class HybridRecommender:
@@ -26,8 +27,12 @@ class HybridRecommender:
             self.recommend = self.recommend_weights
         elif merging_type == MergingTechniques.RR:
             self.recommend = self.recommend_lists_rr
-        else:
+        elif merging_type == MergingTechniques.FREQ:
             self.recommend = self.recommend_lists_freq
+        elif merging_type == MergingTechniques.MEDRANK:
+            self.recommend = self.recommend_lists_medrank
+        else:
+            raise ValueError('merging_type is not an instance of MergingTechnique')
         print(self.recommend)
 
     def recommend_weights(self, user_id, at=10, exclude_seen=True):
@@ -92,9 +97,9 @@ if __name__ == '__main__':
         cbf_rec.fit(urm_train, icm, top_k=5, shrink=20, similarity='tanimoto')
         cf_rec = ItemCFKNNRecommender()
         cf_rec.fit(urm_train, top_k=5, shrink=20, similarity='tanimoto')
-        slim_rec = SLIM_BPR(use_tailboost=True)
+        slim_rec = SLIM_BPR()
         slim_rec.fit(urm_train, epochs=100)
-        rec = HybridRecommender([cf_rec, slim_rec, cbf_rec, tp_rec], merging_type=MergingTechniques.RR)
+        rec = HybridRecommender([cf_rec, slim_rec], merging_type=MergingTechniques.RR)
         if EXPORT:
             export(target_users, rec)
         else:

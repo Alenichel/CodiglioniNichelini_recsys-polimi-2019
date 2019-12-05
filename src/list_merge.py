@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import numpy as np
-from collections import Counter
 
 
 def round_robin_list_merger(lists, at=10):
@@ -11,7 +10,8 @@ def round_robin_list_merger(lists, at=10):
     final_list = list()
     for idx in range(at):
         for l in lists:
-            final_list.append(l[idx])
+            if l[idx] not in final_list:
+                final_list.append(l[idx])
     return final_list
 
 
@@ -22,14 +22,11 @@ def frequency_list_merger(lists):
     return unique[count_descending]
 
 
-def medrank(lists):
+def medrank(lists, at=10):
     n_lists = len(lists)
-    for i in range(n_lists - 1):
-        assert len(lists[i]) == len(lists[i+1])
-    list_len = len(lists[0])
     rank = dict()
     for l_idx in range(n_lists):
-        for idx in range(list_len):
+        for idx in range(at):
             item = lists[l_idx][idx]
             if item in rank:
                 rank[item][l_idx] = idx+1
