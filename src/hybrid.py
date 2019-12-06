@@ -174,10 +174,9 @@ if __name__ == '__main__':
                 cf_rec2.fit(urm_train, top_k=5, shrink=35, similarity='cosine')
                 cf_rec3 = ItemCFKNNRecommender(fallback_recommender=tp_rec)
                 cf_rec3.fit(urm_train, top_k=10, shrink=20, similarity='asymmetric')
-                rec = HybridRecommender([cf_rec1, cf_rec2, cf_rec3], merging_type=MergingTechniques.RR)
-                slim_rec = SLIM_BPR()
-                slim_rec.fit(urm_train, epochs=100)
-                final = HybridRecommender([rec, slim_rec], merging_type=MergingTechniques.WEIGHTS, weights=weights)
+                cbf_rec = ItemCBFKNNRecommender()
+                cbf_rec.fit(urm_train, icm, top_k=5, shrink=20, similarity='tanimoto')
+                final = HybridRecommender([rec, cbf_rec], merging_type=MergingTechniques.WEIGHTS, weights=weights)
                 roundMAP = evaluate(final, urm_test)['MAP']
                 cumulativeMAP += roundMAP
                 median_value = cumulativeMAP / (n+1)
