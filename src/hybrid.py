@@ -8,6 +8,7 @@ from cbf import ItemCBFKNNRecommender
 from slim_bpr import SLIM_BPR
 from basic_recommenders import TopPopRecommender
 from enum import Enum
+import pprint as pp
 
 
 class MergingTechniques(Enum):
@@ -58,7 +59,7 @@ class HybridRecommender:
 
 
 if __name__ == '__main__':
-    TUNER = 0
+    TUNER = 4
 
     if TUNER == 0: # BEST ENTRY SO FAR
         EXPORT = True
@@ -152,3 +153,39 @@ if __name__ == '__main__':
             export(target_users, cf_rec)
         else:
             evaluate(cf_rec, urm_test)
+
+    # Tuner for hybridization
+    elif TUNER == 4:
+        ROUND = 5
+        urm, icm, target_users = build_all_matrices()
+        results = []
+        for x in range(0, 100, 5):
+            weights = [x/100, 1 - x/100]
+            cumulativeMAP = 0
+            median_value = 0
+            for n in range(ROUND):
+                urm_train, urm_test = train_test_split(urm, SplitType.LOO)
+                n_users, n_items = urm_train.shape
+                tp_rec = TopPopRecommender()
+                tp_rec.fit(urm_train)
+                cf_rec1 = ItemCFKNNRecommender(fallback_recommender=tp_rec)
+                cf_rec1.fit(urm_train, top_k=5, shrink=20, similarity='tanimoto')
+                cf_rec2 = ItemCFKNNRecommender(fallback_recommender=tp_rec)
+                cf_rec2.fit(urm_train, top_k=5, shrink=35, similarity='cosine')
+                cf_rec3 = ItemCFKNNRecommender(fallback_recommender=tp_rec)
+                cf_rec3.fit(urm_train, top_k=10, shrink=20, similarity='asymmetric')
+                rec = HybridRecommender([cf_rec1, cf_rec2, cf_rec3], merging_type=MergingTechniques.RR)
+                slim_rec = SLIM_BPR()
+                slim_rec.fit(urm_train, epochs=100)
+                final = HybridRecommender([rec, slim_rec], merging_type=MergingTechniques.WEIGHTS, weights=weights)
+                roundMAP = evaluate(final, urm_test)['MAP']
+                cumulativeMAP += roundMAP
+                median_value = cumulativeMAP / (n+1)
+                print("Median value so far %f" % median_value)
+            results.append({
+                "value": median_value,
+                "weights": weights
+            })
+        pp.print(results)
+
+
