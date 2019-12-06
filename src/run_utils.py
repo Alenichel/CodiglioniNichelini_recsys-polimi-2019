@@ -4,7 +4,7 @@ from enum import Enum
 import numpy as np
 import scipy.sparse as sps
 from sklearn.preprocessing import LabelEncoder
-from tqdm import tqdm
+from tqdm import tqdm, trange
 from csv_utils import load_csv, export_csv
 from evaluation import evaluate_algorithm
 
@@ -86,7 +86,7 @@ def evaluate(recommender, urm_test):
 def export(target_users, recommender):
     print('Exporting recommendations...')
     data = list()
-    for u_id in tqdm(target_users):
+    for u_id in tqdm(target_users, desc='Export'):
         data.append((u_id, recommender.recommend(u_id, at=10)))
     export_csv(('user_id', 'item_list'), data)
     print('OK')
@@ -113,7 +113,7 @@ def __train_test_loo_split(urm):
     num_items = urm.shape[1]
     urm_train = urm.copy()
     urm_test = np.zeros((num_users, num_items))
-    for user_id in tqdm(range(num_users)):
+    for user_id in trange(num_users, desc='LeaveOneOut'):
         start_pos = urm_train.indptr[user_id]
         end_pos = urm_train.indptr[user_id + 1]
         user_profile = urm_train.indices[start_pos:end_pos]

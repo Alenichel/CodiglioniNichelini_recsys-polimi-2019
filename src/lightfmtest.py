@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 
 import numpy as np
+from tqdm import trange
 from lightfm import LightFM
+from lightfm.evaluation import precision_at_k
+import matplotlib.pyplot as plt
 from run_utils import build_all_matrices, train_test_split, evaluate, export, SplitType
 
 
@@ -46,9 +49,21 @@ if __name__ == '__main__':
         urm_test = None
     else:
         urm_train, urm_test = train_test_split(urm, SplitType.LOO)
-    lightfm_rec = LightFMRecommender()
-    lightfm_rec.fit(urm_train, epochs=100)
-    if EXPORT:
-        export(target_users, lightfm_rec)
-    else:
-        evaluate(lightfm_rec, urm_test)
+    model = LightFM(loss='warp-kos')
+    x = []
+    precisions = []
+    TOTAL_EPOCHS = 5000
+    EPOCHS_PER_BATCH = 500
+    for epoch in trange(TOTAL_EPOCHS // EPOCHS_PER_BATCH, desc='Training'):
+        for batch_epoch in trange(EPOCHS_PER_BATCH, desc='Batch'):
+            model.fit_partial(urm_train, epochs=1)
+        x.append((epoch + 1) * EPOCHS_PER_BATCH)
+        precisions.append(precision_at_k(model, urm_test).mean())
+        plt.plot(x, precisions)
+        plt.show()
+    #lightfm_rec = LightFMRecommender()
+    #lightfm_rec.fit(urm_train, epochs=100)
+    #if EXPORT:
+    #    export(target_users, lightfm_rec)
+    #else:
+    #    evaluate(lightfm_rec, urm_test)

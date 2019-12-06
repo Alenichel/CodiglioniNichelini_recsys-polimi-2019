@@ -58,7 +58,7 @@ class HybridRecommender:
 
 
 if __name__ == '__main__':
-    TUNER = 3
+    TUNER = 2
 
     if TUNER == 1:
         ROUND = 5
@@ -100,7 +100,7 @@ if __name__ == '__main__':
         cf_rec = ItemCFKNNRecommender()
         cf_rec.fit(urm_train, top_k=5, shrink=20, similarity='tanimoto')
         slim_rec = SLIM_BPR()
-        slim_rec.fit(urm_train, epochs=100)
+        slim_rec.fit(urm_train, epochs=10)
         rec = HybridRecommender([cf_rec, slim_rec, cbf_rec, tp_rec], merging_type=MergingTechniques.RR)
         if EXPORT:
             export(target_users, rec)

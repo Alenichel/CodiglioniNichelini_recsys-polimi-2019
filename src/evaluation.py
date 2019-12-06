@@ -2,9 +2,7 @@
 
 import numpy as np
 import scipy.sparse as sps
-from time import time
-from datetime import timedelta
-from tqdm import tqdm
+from tqdm import trange
 
 
 def precision(is_relevant, relevant_items):
@@ -31,7 +29,7 @@ def evaluate_algorithm(urm_test, recommender_object, at=10):
     num_eval = 0
     urm_test = sps.csr_matrix(urm_test)
     n_users = urm_test.shape[0]
-    for user_id in tqdm(range(n_users)):
+    for user_id in trange(n_users, desc='Evaluation'):
         start_pos = urm_test.indptr[user_id]
         end_pos = urm_test.indptr[user_id+1]
         if end_pos - start_pos > 0:
