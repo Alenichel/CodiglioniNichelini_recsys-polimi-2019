@@ -121,7 +121,7 @@ if __name__ == '__main__':
         urm_train = urm.tocsr()
         urm_test = None
     else:
-        urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
+        urm_train, urm_test = train_test_split(urm, SplitType.LOO)
     cbf_rec = ItemCBFKNNRecommender()
     cbf_rec.fit(urm_train, icm)
     tp_rec = TopPopRecommender()

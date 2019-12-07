@@ -112,7 +112,7 @@ def __train_test_loo_split(urm):
     num_users = urm.shape[0]
     num_items = urm.shape[1]
     urm_train = urm.copy()
-    urm_test = np.zeros((num_users, num_items))
+    urm_test = sps.lil_matrix((num_users, num_items), dtype=int)
     for user_id in trange(num_users, desc='LeaveOneOut'):
         start_pos = urm_train.indptr[user_id]
         end_pos = urm_train.indptr[user_id + 1]
