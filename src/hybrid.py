@@ -16,6 +16,7 @@ class MergingTechniques(Enum):
     RR = 2
     FREQ = 3
     MEDRANK = 4
+    SLOTS = 5
 
 
 class HybridRecommender:
@@ -32,6 +33,8 @@ class HybridRecommender:
             self.recommend = self.recommend_lists_freq
         elif merging_type == MergingTechniques.MEDRANK:
             self.recommend = self.recommend_lists_medrank
+        elif merging_type == MergingTechniques.SLOTS:
+            self.recommend = self.reccomend_excluding_from_cf
         else:
             raise ValueError('merging_type is not an instance of MergingTechnique')
         print(self.recommend)
@@ -57,9 +60,22 @@ class HybridRecommender:
         recommendations = [recommender.recommend(user_id, at=at, exclude_seen=exclude_seen) for recommender in self.recommenders]
         return medrank(recommendations)[:at]
 
+    def reccomend_excluding_from_cf(self, user_id, at=10, exclude_seen=True, slot_for_cf=6):
+        reccomdations1 = self.recommenders[0].recommend(user_id, at=at, exclude_seen=exclude_seen)
+        reccomdations2 = self.recommenders[1].recommend(user_id, at=at, exclude_seen=exclude_seen)
+        f = reccomdations1[:slot_for_cf]
+        s = reccomdations2
+        l = []
+        for e in f:
+            l = l + [e]
+        for e in s:
+            l = l + [e]
+        l = list(dict.fromkeys(l))
+        return l[:at]
+
 
 if __name__ == '__main__':
-    TUNER = 4
+    TUNER = 5
 
     if TUNER == 0: # BEST ENTRY SO FAR
         EXPORT = True
@@ -94,14 +110,13 @@ if __name__ == '__main__':
             n_users, n_items = urm_train.shape
             top_pop = TopPopRecommender()
             top_pop.fit(urm_train)
-            cf_rec1 = ItemCFKNNRecommender(fallback_recommender=top_pop)
+            cf_rec1 = ItemCFKNNRecommender(fallback_recommender=top_pop, use_tail_boost=True)
             cf_rec1.fit(urm_train, top_k=5, shrink=20, similarity='tanimoto')
-            cf_rec2 = ItemCFKNNRecommender(fallback_recommender=top_pop)
+            cf_rec2 = ItemCFKNNRecommender(fallback_recommender=top_pop, use_tail_boost=True)
             cf_rec2.fit(urm_train, top_k=5, shrink=35, similarity='cosine')
-            cf_rec3 = ItemCFKNNRecommender(fallback_recommender=top_pop)
+            cf_rec3 = ItemCFKNNRecommender(fallback_recommender=top_pop, use_tail_boost=True)
             cf_rec3.fit(urm_train, top_k=10, shrink=20, similarity='asymmetric')
-            rec = HybridRecommender([cf_rec1, cf_rec2, cf_rec3], merging_type=MergingTechniques.WEIGHTS,
-                                    weights=[1 / 3, 1 / 3, 1 / 3])
+            rec = HybridRecommender([cf_rec1, cf_rec2, cf_rec3], merging_type=MergingTechniques.RR)
             roundMAP = evaluate(rec, urm_test)['MAP']
             results.append(roundMAP)
             cumulativeMAP += roundMAP
@@ -188,4 +203,54 @@ if __name__ == '__main__':
             })
         pp.print(results)
 
+    elif TUNER == 5:
+        ROUND = 5
+        urm, icm, target_users = build_all_matrices()
+        cumulativeMAP = 0
+        results = []
+        for x in range(ROUND):
+            urm_train, urm_test = train_test_split(urm, SplitType.LOO)
+            n_users, n_items = urm_train.shape
+            top_pop = TopPopRecommender()
+            top_pop.fit(urm_train)
+            cf_rec1 = ItemCFKNNRecommender(fallback_recommender=top_pop)
+            cf_rec1.fit(urm_train, top_k=5, shrink=20, similarity='tanimoto')
+            cf_rec2 = ItemCFKNNRecommender(fallback_recommender=top_pop)
+            cf_rec2.fit(urm_train, top_k=5, shrink=35, similarity='cosine')
+            cf_rec3 = ItemCFKNNRecommender(fallback_recommender=top_pop)
+            cf_rec3.fit(urm_train, top_k=10, shrink=20, similarity='asymmetric')
+            rec = HybridRecommender([cf_rec1, cf_rec2, cf_rec3], merging_type=MergingTechniques.RR)
+            slim_rec = SLIM_BPR()
+            slim_rec.fit(urm_train, epochs=100)
+            final = HybridRecommender([rec, slim_rec], merging_type=MergingTechniques.SLOTS)
+            roundMAP = evaluate(final, urm_test)['MAP']
+            results.append(roundMAP)
+            cumulativeMAP += roundMAP
+            print("median value so far %f (ROUND %d)" % (cumulativeMAP / (x + 1), x + 1))
+        print(results.sort())
 
+    if TUNER == 6:
+        EXPORT = True
+        urm, icm, target_users = build_all_matrices()
+        if EXPORT:
+            urm_train = urm.tocsr()
+            urm_test = None
+        else:
+            urm_train, urm_test = train_test_split(urm, SplitType.LOO)
+        n_users, n_items = urm_train.shape
+        top_pop = TopPopRecommender()
+        top_pop.fit(urm_train)
+        cf_rec1 = ItemCFKNNRecommender(fallback_recommender=top_pop)
+        cf_rec1.fit(urm_train, top_k=5, shrink=20, similarity='tanimoto')
+        cf_rec2 = ItemCFKNNRecommender(fallback_recommender=top_pop)
+        cf_rec2.fit(urm_train, top_k=5, shrink=35, similarity='cosine')
+        cf_rec3 = ItemCFKNNRecommender(fallback_recommender=top_pop)
+        cf_rec3.fit(urm_train, top_k=10, shrink=20, similarity='asymmetric')
+        rec = HybridRecommender([cf_rec1, cf_rec2, cf_rec3], merging_type=MergingTechniques.RR)
+        slim_rec = SLIM_BPR()
+        slim_rec.fit(urm_train, epochs=100)
+        final = HybridRecommender([rec, slim_rec], merging_type=MergingTechniques.SLOTS)
+        if EXPORT:
+            export(target_users, final)
+        else:
+            evaluate(final, urm_test)
