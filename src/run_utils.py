@@ -5,6 +5,7 @@ import numpy as np
 import scipy.sparse as sps
 from sklearn.preprocessing import LabelEncoder
 from tqdm import tqdm, trange
+from cython_modules.leave_one_out import train_test_loo_split as __train_test_loo_split_cython
 from csv_utils import load_csv, export_csv
 from evaluation import evaluate_algorithm
 
@@ -22,6 +23,7 @@ class DataFiles:
 class SplitType(Enum):
     PROBABILISTIC = 1
     LOO = 2
+    LOO_CYTHON = 3
 
 
 def build_urm():
@@ -76,6 +78,8 @@ def train_test_split(urm, split_type=SplitType.LOO, split=0.8):
         return __train_test_split(urm, split)
     elif split_type == SplitType.LOO:
         return __train_test_loo_split(urm)
+    elif split_type == SplitType.LOO_CYTHON:
+        return __train_test_loo_split_cython(urm)
 
 
 def evaluate(recommender, urm_test):

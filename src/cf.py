@@ -103,7 +103,7 @@ if __name__ == '__main__':
         urm_train = urm.tocsr()
         urm_test = None
     else:
-        urm_train, urm_test = train_test_split(urm, SplitType.LOO)
+        urm_train, urm_test = train_test_split(urm, SplitType.LOO_CYTHON)
     top_pop_rec = TopPopRecommender()
     top_pop_rec.fit(urm_train)
     user_cf_rec = UserCFKNNRecommender(fallback_recommender=top_pop_rec)
