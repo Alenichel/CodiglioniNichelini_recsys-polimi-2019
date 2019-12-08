@@ -6,6 +6,7 @@ from helper import TailBoost
 from Base.Similarity.Compute_Similarity_Python import Compute_Similarity_Python
 from basic_recommenders import TopPopRecommender
 
+
 class ItemCFKNNRecommender(object):
 
     def __init__(self, use_tail_boost=False, fallback_recommender=None):
@@ -16,7 +17,7 @@ class ItemCFKNNRecommender(object):
         self.fallback_recommender = fallback_recommender    # NOTE: This should be already trained
 
     def fit(self, urm, top_k=50, shrink=100, normalize=True, similarity='cosine'):
-        print('top_k={0}, shrink={1}, tail_boost={2}'.format(top_k, shrink, self.use_tail_boost))
+        print('top_k={0}, shrink={1}, tail_boost={2}, fallback={3}'.format(top_k, shrink, self.use_tail_boost, self.fallback_recommender))
         self.urm = urm.tocsr()
         if self.use_tail_boost:
             self.tb = TailBoost(urm)
@@ -61,7 +62,7 @@ class UserCFKNNRecommender(object):
         self.fallback_recommender = fallback_recommender    # NOTE: This should be already trained
 
     def fit(self, urm, top_k=50, shrink=100, normalize=True, similarity='cosine'):
-        print('top_k={0}, shrink={1}, tail_boost={2}'.format(top_k, shrink, self.use_tail_boost))
+        print('top_k={0}, shrink={1}, tail_boost={2}, fallback={3}'.format(top_k, shrink, self.use_tail_boost, self.fallback_recommender))
         self.urm = urm.tocsr()
         if self.use_tail_boost:
             self.tb = TailBoost(urm)
@@ -77,7 +78,6 @@ class UserCFKNNRecommender(object):
         return scores
 
     def recommend(self, user_id, at=None, exclude_seen=True):
-        # TODO Check if scores all zeros for a cold user
         user_profile = self.urm[user_id]
         if user_profile.nnz == 0 and self.fallback_recommender:
             return self.fallback_recommender.recommend(user_id, at, exclude_seen)
@@ -106,9 +106,11 @@ if __name__ == '__main__':
         urm_train, urm_test = train_test_split(urm, SplitType.LOO)
     top_pop_rec = TopPopRecommender()
     top_pop_rec.fit(urm_train)
-    cf_rec = UserCFKNNRecommender()
-    cf_rec.fit(urm_train)
+    user_cf_rec = UserCFKNNRecommender(fallback_recommender=top_pop_rec)
+    user_cf_rec.fit(urm_train)
+    item_cf_rec = ItemCFKNNRecommender(fallback_recommender=user_cf_rec)
+    item_cf_rec.fit(urm_train)
     if EXPORT:
-        export(target_users, cf_rec)
+        export(target_users, item_cf_rec)
     else:
-        evaluate(cf_rec, urm_test)
+        evaluate(item_cf_rec, urm_test)
