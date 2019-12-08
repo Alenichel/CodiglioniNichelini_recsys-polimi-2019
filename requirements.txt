@@ -5,3 +5,5 @@ sklearn
 tqdm
 lightfm
 matplotlib
+torch
+torchvision
