@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import numpy as np
-from run_utils import build_all_matrices, train_test_split, evaluate, export, SplitType
+from run_utils import build_all_matrices, train_test_split, SplitType, export, evaluate
 from helper import TailBoost
 from Base.Similarity.Compute_Similarity_Python import Compute_Similarity_Python
 from basic_recommenders import TopPopRecommender
@@ -71,7 +71,7 @@ class UserCFKNNRecommender(object):
                                                       similarity=similarity)
         self.w_sparse = similarity_object.compute_similarity()
 
-    def get_scores(self, user_id, exclude_seen=True):
+    def get_scores(self, user_id, exclude_seen=False):
         scores = self.w_sparse[user_id, :].dot(self.urm).toarray().ravel()
         if exclude_seen:
             scores = self.filter_seen(user_id, scores)
@@ -106,11 +106,11 @@ if __name__ == '__main__':
         urm_train, urm_test = train_test_split(urm, SplitType.LOO_CYTHON)
     top_pop_rec = TopPopRecommender()
     top_pop_rec.fit(urm_train)
-    user_cf_rec = UserCFKNNRecommender(fallback_recommender=top_pop_rec)
-    user_cf_rec.fit(urm_train)
-    item_cf_rec = ItemCFKNNRecommender(fallback_recommender=user_cf_rec)
+    #user_cf_rec = UserCFKNNRecommender(fallback_recommender=top_pop_rec)
+    #user_cf_rec.fit(urm_train)
+    item_cf_rec = ItemCFKNNRecommender(fallback_recommender=top_pop_rec)
     item_cf_rec.fit(urm_train)
     if EXPORT:
         export(target_users, item_cf_rec)
     else:
-        evaluate(item_cf_rec, urm_test)
+        evaluate(item_cf_rec, urm_test, cython=True)

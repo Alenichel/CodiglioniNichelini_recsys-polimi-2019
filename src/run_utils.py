@@ -82,9 +82,13 @@ def train_test_split(urm, split_type=SplitType.LOO, split=0.8):
         return __train_test_loo_split_cython(urm)
 
 
-def evaluate(recommender, urm_test):
-    print('Evaluating...')
-    return evaluate_algorithm(urm_test, recommender)
+def evaluate(recommender, urm_test, cython=False):
+    if cython:
+        from cython_modules.evaluation import evaluate_cython
+        print('Using Cython evaluation')
+        return evaluate_cython(recommender, urm_test)
+    else:
+        return evaluate_algorithm(urm_test, recommender)
 
 
 def export(target_users, recommender):

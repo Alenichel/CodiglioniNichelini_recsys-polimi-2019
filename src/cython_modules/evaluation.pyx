@@ -1,34 +1,39 @@
-#!/usr/bin/env python3
-
 import numpy as np
-import scipy.sparse as sps
 from tqdm import trange
+cimport cython
+cimport numpy as np
 
 
-def precision(is_relevant, relevant_items):
-    precision_score = np.sum(is_relevant, dtype=np.float32) / len(is_relevant)
+cdef precision(np.ndarray is_relevant, np.ndarray relevant_items):
+    cdef double precision_score = np.sum(is_relevant, dtype=np.float32) / len(is_relevant)
     return precision_score
 
 
-def recall(is_relevant, relevant_items):
-    recall_score = np.sum(is_relevant, dtype=np.float32) / relevant_items.shape[0]
+cdef recall(np.ndarray is_relevant, np.ndarray relevant_items):
+    cdef double recall_score = np.sum(is_relevant, dtype=np.float32) / relevant_items.shape[0]
     return recall_score
 
 
-def MAP(is_relevant, relevant_items):
+cdef MAP(np.ndarray is_relevant, np.ndarray relevant_items):
     # Cumulative sum: precision at 1, at 2, at 3 ...
-    p_at_k = is_relevant * np.cumsum(is_relevant, dtype=np.float32) / (1 + np.arange(is_relevant.shape[0]))
-    map_score = np.sum(p_at_k) / np.min([relevant_items.shape[0], is_relevant.shape[0]])
+    cdef np.ndarray p_at_k = is_relevant * np.cumsum(is_relevant, dtype=np.float32) / (1 + np.arange(is_relevant.shape[0]))
+    cdef double map_score = np.sum(p_at_k) / np.min([relevant_items.shape[0], is_relevant.shape[0]])
     return map_score
 
 
-def evaluate_algorithm(recommender_object, urm_test, at=10):
-    cumulative_precision = 0.0                              
-    cumulative_recall = 0.0
-    cumulative_MAP = 0.0
-    num_eval = 0
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def evaluate_cython(recommender_object, urm_test, int at=10):
+    cdef double cumulative_precision = 0.0
+    cdef double cumulative_recall = 0.0
+    cdef double cumulative_MAP = 0.0
+    cdef int num_eval = 0
     urm_test = urm_test.tocsr()
-    n_users = urm_test.shape[0]
+    cdef int n_users = urm_test.shape[0]
+    cdef int start_pos, end_pos
+    cdef np.ndarray relevant_items
+    cdef np.ndarray recommended_items
+    cdef np.ndarray is_relevant
     for user_id in trange(n_users, desc='Evaluation'):
         start_pos = urm_test.indptr[user_id]
         end_pos = urm_test.indptr[user_id+1]
@@ -48,7 +53,7 @@ def evaluate_algorithm(recommender_object, urm_test, at=10):
     print('    Recall    = {:.5f}'.format(cumulative_recall))
     print('    MAP       = {:.5f}'.format(cumulative_MAP))
     result_dict = {
-        "precision": cumulative_precision,                          
+        "precision": cumulative_precision,
         "recall": cumulative_recall,
         "MAP": cumulative_MAP,
     }
