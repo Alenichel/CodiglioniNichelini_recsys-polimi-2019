@@ -7,8 +7,6 @@ from sklearn.preprocessing import LabelEncoder
 from tqdm import tqdm, trange
 from cython_modules.leave_one_out import train_test_loo_split as __train_test_loo_split_cython
 from csv_utils import load_csv, export_csv
-from evaluation import evaluate_algorithm
-
 
 class DataFiles:
     TRAIN = 'data/data_train.csv'
@@ -83,6 +81,7 @@ def train_test_split(urm, split_type=SplitType.LOO, split=0.8):
 
 
 def evaluate(recommender, urm_test, excluded_users=[], cython=False):
+    from evaluation import evaluate_algorithm
     if cython:
         print('Ignoring argument excluded_users')
         from cython_modules.evaluation import evaluate_cython

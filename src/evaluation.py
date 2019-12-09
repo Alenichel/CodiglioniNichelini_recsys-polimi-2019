@@ -3,6 +3,8 @@
 import numpy as np
 import scipy.sparse as sps
 from tqdm import trange
+from run_utils import build_all_matrices, train_test_split, SplitType
+from basic_recommenders import TopPopRecommender
 
 
 def precision(is_relevant, relevant_items):
@@ -54,3 +56,19 @@ def evaluate_algorithm(recommender_object, urm_test, at=10, excluded_users=[]):
         "MAP": cumulative_MAP,
     }
     return result_dict
+
+
+def multiple_evaluation(rec_sys, parameters, round=5):
+    urm, icm, target_users = build_all_matrices()
+    cumulativeMAP = 0
+    results = []
+    for x in range(round):
+        urm_train, urm_test = train_test_split(urm, SplitType.LOO)
+        n_users, n_items = urm_train.shape
+        rec_sys.fallback_recommender.fit(urm_train)
+        rec_sys.fit(urm_train, *parameters)
+        roundMAP = evaluate_algorithm(rec_sys, urm_test)['MAP']
+        results.append(roundMAP)
+        cumulativeMAP += roundMAP
+        print("median value so far %f (ROUND %d)" % (cumulativeMAP / (x + 1), x + 1))
+    print(results.sort())
