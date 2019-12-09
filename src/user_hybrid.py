@@ -27,7 +27,7 @@ if __name__ == '__main__':
     item_cf.fit(urm_train)
 
     profile_length = np.ediff1d(urm_train.indptr)
-    group_size_percent = 0.5
+    group_size_percent = 0.05
     n_groups = int(1 / group_size_percent)
     group_size = int(profile_length.size * group_size_percent)
     sorted_users = np.argsort(profile_length)
