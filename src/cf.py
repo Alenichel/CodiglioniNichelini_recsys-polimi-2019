@@ -6,7 +6,7 @@ from helper import TailBoost
 from Base.Similarity.Compute_Similarity_Python import Compute_Similarity_Python
 from basic_recommenders import TopPopRecommender
 from evaluation import multiple_evaluation
-
+from pprint import pprint as pp
 
 class ItemCFKNNRecommender(object):
 
@@ -123,7 +123,12 @@ if __name__ == '__main__':
         evaluate(user_cf_rec, urm_test, cython=True)"""
 
 if __name__ == '__main__':
-    top_k = 5
-    shrink = 20
-    similarity = 'cosine'
-    multiple_evaluation(UserCFKNNRecommender(fallback_recommender=TopPopRecommender()), [top_k, shrink, True, similarity], round=5)
+    results = []
+    for n in range(25):
+        top_k = np.random.randint(0,1000)
+        shrink = np.random.randint(0,1000)
+        similarity = 'cosine'
+        results.append(multiple_evaluation(
+            UserCFKNNRecommender(fallback_recommender=TopPopRecommender()), [top_k, shrink, True, similarity], round=5))
+        results.sort(key=lambda dictionary: dictionary['median_value'], reverse=True)
+        pp(results)
