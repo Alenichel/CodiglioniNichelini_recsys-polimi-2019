@@ -35,7 +35,7 @@ class RandomTuner:
 
 if __name__ == '__main__':
     fit_params_ranges = {
-        'top_k': Integer(1, 100),
+        'top_k': Integer(1, 1000),
         'shrink': Integer(0, 1000),
         'similarity': Categorical(['cosine', 'tanimoto']),
         'normalize': Categorical([True, False])

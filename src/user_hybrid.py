@@ -79,15 +79,13 @@ if __name__ == '__main__':
     recommenders = [random, top_pop, item_cbf, user_cf, item_cf, slim_bpr]
     '''
 
-    rec1 = ItemCFKNNRecommender()
-    rec1.fit(urm_train, top_k=5, shrink=35, similarity='cosine')
-    rec2 = ItemCFKNNRecommender()
-    rec2.fit(urm_train, top_k=20, shrink=20, similarity='jaccard')
+    rec1 = UserCFKNNRecommender()
+    rec1.fit(urm_train, top_k=533, shrink=593, similarity='cosine')
+    #rec2 = ItemCFKNNRecommender()
+    #rec2.fit(urm_train, top_k=20, shrink=20, similarity='jaccard')
     rec3 = ItemCFKNNRecommender()
     rec3.fit(urm_train, top_k=5, shrink=20, similarity='tanimoto')
-    recommenders = [rec1, rec2, rec3]
+    recommenders = [rec1, rec3]
 
     user_segmenter = UserSegmenter(recommenders, urm_train, urm_test)
     user_segmenter.analyze(group_size_percent=0.05)
-
-

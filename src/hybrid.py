@@ -2,8 +2,9 @@
 
 import numpy as np
 from run_utils import build_all_matrices, train_test_split, evaluate, export, SplitType
+from evaluation import multiple_evaluation
 from list_merge import round_robin_list_merger, frequency_list_merger, medrank
-from cf import ItemCFKNNRecommender
+from cf import ItemCFKNNRecommender, UserCFKNNRecommender
 from cbf import ItemCBFKNNRecommender
 from slim_bpr import SLIM_BPR
 from basic_recommenders import TopPopRecommender
@@ -75,7 +76,7 @@ class HybridRecommender:
 
 
 if __name__ == '__main__':
-    TUNER = 5
+    TUNER = 7
 
     if TUNER == 0: # BEST ENTRY SO FAR
         EXPORT = True
@@ -229,7 +230,7 @@ if __name__ == '__main__':
             print("median value so far %f (ROUND %d)" % (cumulativeMAP / (x + 1), x + 1))
         print(results.sort())
 
-    if TUNER == 6:
+    elif TUNER == 6:
         EXPORT = True
         urm, icm, target_users = build_all_matrices()
         if EXPORT:
@@ -254,3 +255,24 @@ if __name__ == '__main__':
             export(target_users, final)
         else:
             evaluate(final, urm_test)
+
+    elif TUNER == 7:
+        EXPORT = False
+        urm, icm, target_users = build_all_matrices()
+        if EXPORT:
+            urm_train = urm.tocsr()
+            urm_test = None
+        else:
+            urm_train, urm_test = train_test_split(urm, SplitType.LOO_CYTHON)
+        n_users, n_items = urm_train.shape
+        top_pop = TopPopRecommender()
+        top_pop.fit(urm_train)
+        user_cf = UserCFKNNRecommender(fallback_recommender=top_pop)
+        user_cf.fit(urm_train, top_k=645, shrink=539, normalize=True, similarity='cosine')
+        item_cf = ItemCFKNNRecommender(fallback_recommender=top_pop)
+        item_cf.fit(urm_train, top_k=5, shrink=20, normalize=True, similarity='tanimoto')
+        hybrid = HybridRecommender([item_cf, user_cf], merging_type=MergingTechniques.RR)
+        if EXPORT:
+            export(target_users, hybrid)
+        else:
+            evaluate(hybrid, urm_test)
