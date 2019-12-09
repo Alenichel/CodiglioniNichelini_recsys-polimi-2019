@@ -61,7 +61,7 @@ class HybridRecommender:
         recommendations = [recommender.recommend(user_id, at=at, exclude_seen=exclude_seen) for recommender in self.recommenders]
         return medrank(recommendations)[:at]
 
-    def reccomend_excluding_from_cf(self, user_id, at=10, exclude_seen=True, slot_for_cf=6):
+    def reccomend_excluding_from_cf(self, user_id, at=10, exclude_seen=True, slot_for_cf=8):
         reccomdations1 = self.recommenders[0].recommend(user_id, at=at, exclude_seen=exclude_seen)
         reccomdations2 = self.recommenders[1].recommend(user_id, at=at, exclude_seen=exclude_seen)
         f = reccomdations1[:slot_for_cf]

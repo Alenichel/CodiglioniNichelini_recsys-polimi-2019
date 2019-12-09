@@ -131,4 +131,4 @@ if __name__ == '__main__':
         results.append(multiple_evaluation(
             UserCFKNNRecommender(fallback_recommender=TopPopRecommender()), [top_k, shrink, True, similarity], round=5))
         results.sort(key=lambda dictionary: dictionary['median_value'], reverse=True)
-        pp(results)
+    pp(results)
