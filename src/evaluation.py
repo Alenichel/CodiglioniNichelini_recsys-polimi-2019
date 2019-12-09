@@ -22,7 +22,7 @@ def MAP(is_relevant, relevant_items):
     return map_score
 
 
-def evaluate_algorithm(recommender_object, urm_test, at=10):
+def evaluate_algorithm(recommender_object, urm_test, at=10, excluded_users=[]):
     cumulative_precision = 0.0                              
     cumulative_recall = 0.0
     cumulative_MAP = 0.0
@@ -30,16 +30,17 @@ def evaluate_algorithm(recommender_object, urm_test, at=10):
     urm_test = urm_test.tocsr()
     n_users = urm_test.shape[0]
     for user_id in trange(n_users, desc='Evaluation'):
-        start_pos = urm_test.indptr[user_id]
-        end_pos = urm_test.indptr[user_id+1]
-        if end_pos - start_pos > 0:
-            relevant_items = urm_test.indices[start_pos:end_pos]
-            recommended_items = recommender_object.recommend(user_id, at=at)
-            num_eval += 1
-            is_relevant = np.in1d(recommended_items, relevant_items, assume_unique=True)
-            cumulative_precision += precision(is_relevant, relevant_items)
-            cumulative_recall += recall(is_relevant, relevant_items)
-            cumulative_MAP += MAP(is_relevant, relevant_items)
+        if user_id not in excluded_users:
+            start_pos = urm_test.indptr[user_id]
+            end_pos = urm_test.indptr[user_id+1]
+            if end_pos - start_pos > 0:
+                relevant_items = urm_test.indices[start_pos:end_pos]
+                recommended_items = recommender_object.recommend(user_id, at=at)
+                num_eval += 1
+                is_relevant = np.in1d(recommended_items, relevant_items, assume_unique=True)
+                cumulative_precision += precision(is_relevant, relevant_items)
+                cumulative_recall += recall(is_relevant, relevant_items)
+                cumulative_MAP += MAP(is_relevant, relevant_items)
     cumulative_precision /= num_eval
     cumulative_recall /= num_eval
     cumulative_MAP /= num_eval

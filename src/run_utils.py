@@ -30,7 +30,7 @@ def build_urm():
     urm_data = load_csv(DataFiles.TRAIN)
     urm_data = [[int(row[i]) if i <= 1 else int(float(row[i])) for i in range(len(row))] for row in urm_data]
     users, items, ratings = map(np.array, zip(*urm_data))
-    return sps.coo_matrix((ratings, (users, items)))
+    return sps.csr_matrix((ratings, (users, items)))
 
 
 def build_icm(n_items):
@@ -82,13 +82,14 @@ def train_test_split(urm, split_type=SplitType.LOO, split=0.8):
         return __train_test_loo_split_cython(urm)
 
 
-def evaluate(recommender, urm_test, cython=False):
+def evaluate(recommender, urm_test, excluded_users=[], cython=False):
     if cython:
+        print('Ignoring argument excluded_users')
         from cython_modules.evaluation import evaluate_cython
         print('Using Cython evaluation')
         return evaluate_cython(recommender, urm_test)
     else:
-        return evaluate_algorithm(urm_test, recommender)
+        return evaluate_algorithm(recommender, urm_test, excluded_users=excluded_users)
 
 
 def export(target_users, recommender):

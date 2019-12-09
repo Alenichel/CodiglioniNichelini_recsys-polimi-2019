@@ -17,7 +17,7 @@ class MF_MSE_PyTorch_model(torch.nn.Module):
         self.user_factors = torch.nn.Embedding(num_embeddings = self.n_users, embedding_dim = self.n_factors)
         self.item_factors = torch.nn.Embedding(num_embeddings = self.n_items, embedding_dim = self.n_factors)
         self.layer_1 = torch.nn.Linear(in_features = self.n_factors, out_features = 1)
-        self.activation_function = torch.nn.ReLU()
+        self.activation_function = torch.nn.Sigmoid()
 
     def forward(self, user_coordinates, item_coordinates):
         current_user_factors = self.user_factors(user_coordinates)
@@ -65,12 +65,12 @@ class MFRecommender:
         self.W = None
 
     def fit(self, urm_train):
-        n_factors = 100
+        n_factors = 10
         n_users, n_items = urm_train.shape
         pyTorchModel = MF_MSE_PyTorch_model(n_users, n_items, n_factors).to(device)
         lossFunction = torch.nn.MSELoss(size_average=False)
         learning_rate = 1e-4
-        optimizer = torch.optim.Adagrad(pyTorchModel.parameters(), lr=learning_rate)
+        optimizer = torch.optim.Adadelta(pyTorchModel.parameters(), lr=learning_rate)
         batch_size = 200
         dataset_iterator = DatasetIterator_URM(urm_train)
         train_data_loader = DataLoader(dataset=dataset_iterator, batch_size=batch_size, shuffle=True, num_workers=2)
@@ -111,7 +111,7 @@ if __name__ == '__main__':
         urm_train = urm.tocsr()
         urm_test = None
     else:
-        urm_train, urm_test = train_test_split(urm, SplitType.LOO)
+        urm_train, urm_test = train_test_split(urm, SplitType.LOO_CYTHON)
     use_cuda = False
     if use_cuda and torch.cuda.is_available():
         device = torch.device('cuda')
@@ -124,4 +124,4 @@ if __name__ == '__main__':
     if EXPORT:
         export(target_users, rec)
     else:
-        evaluate(rec, urm_test)
+        evaluate(rec, urm_test, cython=True)
