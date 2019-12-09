@@ -5,6 +5,7 @@ from run_utils import build_all_matrices, train_test_split, SplitType, export, e
 from helper import TailBoost
 from Base.Similarity.Compute_Similarity_Python import Compute_Similarity_Python
 from basic_recommenders import TopPopRecommender
+from evaluation import multiple_evaluation
 
 
 class ItemCFKNNRecommender(object):
@@ -101,7 +102,7 @@ class UserCFKNNRecommender(object):
         scores[user_profile] = -np.inf
         return scores
 
-
+"""
 if __name__ == '__main__':
     EXPORT = False
     urm, icm, target_users = build_all_matrices()
@@ -112,11 +113,17 @@ if __name__ == '__main__':
         urm_train, urm_test = train_test_split(urm, SplitType.LOO_CYTHON)
     top_pop_rec = TopPopRecommender()
     top_pop_rec.fit(urm_train)
-    #user_cf_rec = UserCFKNNRecommender(fallback_recommender=top_pop_rec)
-    #user_cf_rec.fit(urm_train)
-    item_cf_rec = ItemCFKNNRecommender(fallback_recommender=top_pop_rec)
-    item_cf_rec.fit(urm_train)
+    user_cf_rec = UserCFKNNRecommender(fallback_recommender=top_pop_rec)
+    user_cf_rec.fit(urm_train, top_k=50, shrink=100, similarity='cosine')
+    #item_cf_rec = ItemCFKNNRecommender(fallback_recommender=top_pop_rec)
+    #item_cf_rec.fit(urm_train)
     if EXPORT:
-        export(target_users, item_cf_rec)
+        export(target_users, user_cf_rec)
     else:
-        evaluate(item_cf_rec, urm_test, cython=True)
+        evaluate(user_cf_rec, urm_test, cython=True)"""
+
+if __name__ == '__main__':
+    top_k = 5
+    shrink = 20
+    similarity = 'cosine'
+    multiple_evaluation(UserCFKNNRecommender(fallback_recommender=TopPopRecommender()), [top_k, shrink, True, similarity], round=5)
