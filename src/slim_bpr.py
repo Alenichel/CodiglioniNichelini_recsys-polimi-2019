@@ -30,6 +30,9 @@ class SLIM_BPR:
         self.use_tailboost = use_tailboost
         self.tb = None
 
+    def __str__(self):
+        return 'SLIM BPR'
+
     def fit(self, urm_train, epochs=30):
         self.urm_train = urm_train.tocsr()
         self.n_users = urm_train.shape[0]

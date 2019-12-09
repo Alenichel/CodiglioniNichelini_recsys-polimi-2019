@@ -16,6 +16,9 @@ class ItemCFKNNRecommender(object):
         self.tb = None
         self.fallback_recommender = fallback_recommender    # NOTE: This should be already trained
 
+    def __str__(self):
+        return 'Item CF'
+
     def fit(self, urm, top_k=50, shrink=100, normalize=True, similarity='cosine'):
         print('top_k={0}, shrink={1}, tail_boost={2}, fallback={3}'.format(top_k, shrink, self.use_tail_boost, self.fallback_recommender))
         self.urm = urm.tocsr()
@@ -60,6 +63,9 @@ class UserCFKNNRecommender(object):
         self.use_tail_boost = use_tail_boost
         self.tb = None
         self.fallback_recommender = fallback_recommender    # NOTE: This should be already trained
+
+    def __str__(self):
+        return 'User CF'
 
     def fit(self, urm, top_k=50, shrink=100, normalize=True, similarity='cosine'):
         print('top_k={0}, shrink={1}, tail_boost={2}, fallback={3}'.format(top_k, shrink, self.use_tail_boost, self.fallback_recommender))

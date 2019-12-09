@@ -9,6 +9,51 @@ from cf import ItemCFKNNRecommender, UserCFKNNRecommender
 from slim_bpr import SLIM_BPR
 
 
+class UserSegmenter:
+
+    def __init__(self, recommenders, urm_train, urm_test):
+        self.recommenders = recommenders
+        self.urm_train = urm_train
+        self.urm_test = urm_test
+
+    def analyze(self, group_size_percent=0.1):
+        profile_length = np.ediff1d(self.urm_train.indptr)
+        n_groups = int(1 / group_size_percent)
+        group_size = int(profile_length.size * group_size_percent)
+        sorted_users = np.argsort(profile_length)
+        maps = [[] for r in self.recommenders]
+        for group_id in range(n_groups):
+            start_pos = group_id * group_size
+            end_pos = min((group_id + 1) * group_size, len(profile_length))
+            users_in_group = sorted_users[start_pos:end_pos]
+            users_in_group_p_len = profile_length[users_in_group]
+            print('Group {}, average p.len {:.2f}, min {}, max {}'.format(group_id,
+                                                                          users_in_group_p_len.mean(),
+                                                                          users_in_group_p_len.min(),
+                                                                          users_in_group_p_len.max()))
+            users_not_in_group_flag = np.isin(sorted_users, users_in_group, invert=True)
+            users_not_in_group = sorted_users[users_not_in_group_flag]
+            for idx, rec in enumerate(self.recommenders):
+                map_value = evaluate(rec, self.urm_test, excluded_users=users_not_in_group)['MAP']
+                maps[idx].append(map_value)
+        for group_id in range(n_groups):
+            start_pos = group_id * group_size
+            end_pos = min((group_id + 1) * group_size, len(profile_length))
+            users_in_group = sorted_users[start_pos:end_pos]
+            users_in_group_p_len = profile_length[users_in_group]
+            print('Group {}, average p.len {:.2f}, min {}, max {}'.format(group_id,
+                                                                          users_in_group_p_len.mean(),
+                                                                          users_in_group_p_len.min(),
+                                                                          users_in_group_p_len.max()))
+        for idx, rec in enumerate(self.recommenders):
+            plt.plot(maps[idx], label=str(rec))
+        plt.ylabel('MAP')
+        plt.xlabel('User Group')
+        plt.xticks(np.arange(n_groups))
+        plt.legend()
+        plt.show()
+
+
 if __name__ == '__main__':
     EXPORT = False
     urm, icm, target_users = build_all_matrices()
@@ -18,6 +63,7 @@ if __name__ == '__main__':
     else:
         urm_train, urm_test = train_test_split(urm, SplitType.LOO_CYTHON)
 
+    '''
     random = RandomRecommender()
     random.fit(urm_train)
     top_pop = TopPopRecommender()
@@ -30,69 +76,18 @@ if __name__ == '__main__':
     item_cf.fit(urm_train, top_k=5, shrink=20, similarity='tanimoto')
     slim_bpr = SLIM_BPR()
     slim_bpr.fit(urm_train, epochs=100)
+    recommenders = [random, top_pop, item_cbf, user_cf, item_cf, slim_bpr]
+    '''
 
-    profile_length = np.ediff1d(urm_train.indptr)
-    group_size_percent = 0.05
-    n_groups = int(1 / group_size_percent)
-    group_size = int(profile_length.size * group_size_percent)
-    sorted_users = np.argsort(profile_length)
+    rec1 = ItemCFKNNRecommender()
+    rec1.fit(urm_train, top_k=5, shrink=35, similarity='cosine')
+    rec2 = ItemCFKNNRecommender()
+    rec2.fit(urm_train, top_k=20, shrink=20, similarity='jaccard')
+    rec3 = ItemCFKNNRecommender()
+    rec3.fit(urm_train, top_k=5, shrink=20, similarity='tanimoto')
+    recommenders = [rec1, rec2, rec3]
 
-    random_map = []
-    top_pop_map = []
-    item_cbf_map = []
-    user_cf_map = []
-    item_cf_map = []
-    slim_bpr_map = []
+    user_segmenter = UserSegmenter(recommenders, urm_train, urm_test)
+    user_segmenter.analyze(group_size_percent=0.05)
 
-    for group_id in range(n_groups):
-        start_pos = group_id * group_size
-        end_pos = min((group_id + 1) * group_size, len(profile_length))
-        users_in_group = sorted_users[start_pos:end_pos]
-        users_in_group_p_len = profile_length[users_in_group]
-        print('Group {}, average p.len {:.2f}, min {}, max {}'.format(group_id,
-                                                                      users_in_group_p_len.mean(),
-                                                                      users_in_group_p_len.min(),
-                                                                      users_in_group_p_len.max()))
 
-        users_not_in_group_flag = np.isin(sorted_users, users_in_group, invert=True)
-        users_not_in_group = sorted_users[users_not_in_group_flag]
-
-        results = evaluate(random, urm_test, excluded_users=users_not_in_group)
-        random_map.append(results['MAP'])
-
-        results = evaluate(top_pop, urm_test, excluded_users=users_not_in_group)
-        top_pop_map.append(results['MAP'])
-
-        results = evaluate(item_cbf, urm_test, excluded_users=users_not_in_group)
-        item_cbf_map.append(results['MAP'])
-
-        results = evaluate(user_cf, urm_test, excluded_users=users_not_in_group)
-        user_cf_map.append(results['MAP'])
-
-        results = evaluate(item_cf, urm_test, excluded_users=users_not_in_group)
-        item_cf_map.append(results['MAP'])
-
-        results = evaluate(slim_bpr, urm_test, excluded_users=users_not_in_group)
-        slim_bpr_map.append(results['MAP'])
-
-    for group_id in range(n_groups):
-        start_pos = group_id * group_size
-        end_pos = min((group_id + 1) * group_size, len(profile_length))
-        users_in_group = sorted_users[start_pos:end_pos]
-        users_in_group_p_len = profile_length[users_in_group]
-        print('Group {}, average p.len {:.2f}, min {}, max {}'.format(group_id,
-                                                                      users_in_group_p_len.mean(),
-                                                                      users_in_group_p_len.min(),
-                                                                      users_in_group_p_len.max()))
-
-    plt.plot(random_map, label='Random')
-    plt.plot(top_pop_map, label='TopPop')
-    plt.plot(item_cbf_map, label='Item CBF')
-    plt.plot(user_cf_map, label='User CF')
-    plt.plot(item_cf_map, label='Item CF')
-    plt.plot(slim_bpr_map, label='SLIM BPR')
-    plt.ylabel('MAP')
-    plt.xlabel('User Group')
-    plt.xticks(np.arange(n_groups))
-    plt.legend()
-    plt.show()

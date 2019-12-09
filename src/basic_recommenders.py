@@ -8,7 +8,7 @@ class RandomRecommender:
         self.numItems = None
 
     def __str__(self):
-        return 'Random Recommender'
+        return 'Random'
 
     def fit(self, urm_train):
         self.numItems = urm_train.shape[1]
@@ -24,7 +24,7 @@ class TopPopRecommender(object):
         self.popular_items = None
 
     def __str__(self):
-        return 'Top Pop Recommender'
+        return 'TopPop'
 
     def fit(self, urm_train):
         self.urm_train = urm_train.tocsr()

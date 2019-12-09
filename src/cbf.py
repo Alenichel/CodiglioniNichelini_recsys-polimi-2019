@@ -12,6 +12,9 @@ class ItemCBFKNNRecommender:
         self.icm = None
         self.w_sparse = None
 
+    def __str__(self):
+        return 'Item CBF'
+
     def fit(self, urm, icm, top_k=50, shrink=100, normalize=True, similarity='tanimoto'):
         self.urm = urm
         self.icm = icm
