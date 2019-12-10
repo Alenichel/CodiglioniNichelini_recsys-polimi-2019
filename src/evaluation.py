@@ -59,7 +59,7 @@ def evaluate_algorithm(recommender_object, urm_test, at=10, excluded_users=[]):
     return result_dict
 
 
-def multiple_evaluation(rec_sys, parameters, round=5, interesting_threshold=None, use_group_evaluation=False):
+def multiple_evaluation(rec_sys, parameters, round=5, interesting_threshold=np.inf, use_group_evaluation=False):
     from cbf import ItemCBFKNNRecommender
     urm, icm, target_users = build_all_matrices()
     cumulativeMAP = 0
@@ -107,4 +107,5 @@ def multiple_evaluation(rec_sys, parameters, round=5, interesting_threshold=None
 def select_group_for_evaluation(recommender_object, urm_train, urm_test, at=10):
     from user_hybrid import UserSegmenter
     in_groups, not_in_groups = UserSegmenter.real_segmenter(urm_train)
-    return evaluate_algorithm(recommender_object, urm_test, excluded_users=not_in_groups[9])
+    returning = evaluate_algorithm(recommender_object, urm_test, excluded_users=not_in_groups[9])
+    return returning
