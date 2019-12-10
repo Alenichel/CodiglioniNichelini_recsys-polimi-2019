@@ -16,6 +16,29 @@ class UserSegmenter:
         self.urm_train = urm_train
         self.urm_test = urm_test
 
+    @staticmethod
+    def real_segmenter(urm_train, group_size_percent=0.1):
+        profile_length = np.ediff1d(urm_train.indptr)
+        n_groups = int(1 / group_size_percent)
+        group_size = int(profile_length.size * group_size_percent)
+        sorted_users = np.argsort(profile_length)
+        users_in_groups = []
+        users_not_in_groups = []
+        for group_id in range(n_groups):
+            start_pos = group_id * group_size
+            end_pos = min((group_id + 1) * group_size, len(profile_length))
+            users_in_group = sorted_users[start_pos:end_pos]
+            users_in_groups += [users_in_group]
+            users_in_group_p_len = profile_length[users_in_group]
+            print('Group {}, average p.len {:.2f}, min {}, max {}'.format(group_id,
+                                                                          users_in_group_p_len.mean(),
+                                                                          users_in_group_p_len.min(),
+                                                                          users_in_group_p_len.max()))
+            users_not_in_group_flag = np.isin(sorted_users, users_in_group, invert=True)
+            users_not_in_group = sorted_users[users_not_in_group_flag]
+            users_not_in_groups += [users_not_in_group]
+        return users_in_groups, users_not_in_groups
+
     def analyze(self, group_size_percent=0.1):
         profile_length = np.ediff1d(self.urm_train.indptr)
         n_groups = int(1 / group_size_percent)
@@ -80,12 +103,12 @@ if __name__ == '__main__':
     '''
 
     rec1 = UserCFKNNRecommender()
-    rec1.fit(urm_train, top_k=533, shrink=593, similarity='cosine')
-    #rec2 = ItemCFKNNRecommender()
-    #rec2.fit(urm_train, top_k=20, shrink=20, similarity='jaccard')
+    rec1.fit(urm_train, top_k=551, shrink=702, similarity='cosine')
+    rec2 = UserCFKNNRecommender()
+    rec2.fit(urm_train, top_k=50, shrink=100, similarity='jaccard')
     rec3 = ItemCFKNNRecommender()
     rec3.fit(urm_train, top_k=5, shrink=20, similarity='tanimoto')
-    recommenders = [rec1, rec3]
+    recommenders = [rec1, rec2, rec3]
 
     user_segmenter = UserSegmenter(recommenders, urm_train, urm_test)
     user_segmenter.analyze(group_size_percent=0.05)

@@ -59,7 +59,7 @@ def evaluate_algorithm(recommender_object, urm_test, at=10, excluded_users=[]):
     return result_dict
 
 
-def multiple_evaluation(rec_sys, parameters, round=5, interesting_threshold=None):
+def multiple_evaluation(rec_sys, parameters, round=5, interesting_threshold=None, use_group_evaluation=False):
     from cbf import ItemCBFKNNRecommender
     urm, icm, target_users = build_all_matrices()
     cumulativeMAP = 0
@@ -83,7 +83,11 @@ def multiple_evaluation(rec_sys, parameters, round=5, interesting_threshold=None
         else:
             rec_sys.fit(urm_train, *parameters)
 
-        roundMAP = evaluate_algorithm(rec_sys, urm_test)['MAP']
+        if use_group_evaluation:
+            roundMAP = select_group_for_evaluation(rec_sys, urm_train, urm_test)['MAP']
+        else:
+            roundMAP = evaluate_algorithm(rec_sys, urm_test)['MAP']
+
         if roundMAP > report['max']:
             report['max'] = roundMAP
         elif roundMAP < report['min']:
@@ -98,3 +102,9 @@ def multiple_evaluation(rec_sys, parameters, round=5, interesting_threshold=None
         print("median value so far %f (ROUND %d)" % (report['median_value'], x + 1))
     pp(report)
     return(report)
+
+
+def select_group_for_evaluation(recommender_object, urm_train, urm_test, at=10):
+    from user_hybrid import UserSegmenter
+    in_groups, not_in_groups = UserSegmenter.real_segmenter(urm_train)
+    return evaluate_algorithm(recommender_object, urm_test, excluded_users=not_in_groups[9])
