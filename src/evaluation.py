@@ -59,7 +59,8 @@ def evaluate_algorithm(recommender_object, urm_test, at=10, excluded_users=[]):
     return result_dict
 
 
-def multiple_evaluation(rec_sys, parameters, round=5):
+def multiple_evaluation(rec_sys, parameters, round=5, interesting_threshold=None):
+    from cbf import ItemCBFKNNRecommender
     urm, icm, target_users = build_all_matrices()
     cumulativeMAP = 0
     report = {
@@ -71,8 +72,17 @@ def multiple_evaluation(rec_sys, parameters, round=5):
     for x in range(round):
         urm_train, urm_test = train_test_split(urm, SplitType.LOO)
         n_users, n_items = urm_train.shape
-        rec_sys.fallback_recommender.fit(urm_train)
-        rec_sys.fit(urm_train, *parameters)
+        try:                                                        # check for fallback rc
+            if rec_sys.fallback_recommender:
+                rec_sys.fallback_recommender.fit(urm_train)
+        except AttributeError:                                      # some rcs don't have a fallback rc
+            pass
+
+        if isinstance(rec_sys, ItemCBFKNNRecommender):              # custom path for cbf (it needs icm)
+            rec_sys.fit(urm_train, icm, *parameters)
+        else:
+            rec_sys.fit(urm_train, *parameters)
+
         roundMAP = evaluate_algorithm(rec_sys, urm_test)['MAP']
         if roundMAP > report['max']:
             report['max'] = roundMAP
@@ -80,6 +90,11 @@ def multiple_evaluation(rec_sys, parameters, round=5):
             report['min'] = roundMAP
         cumulativeMAP += roundMAP
         report['median_value'] = cumulativeMAP / (x + 1)
+
+        if report['median_value'] < interesting_threshold:      # if the median is too low, it's not useful to try again
+            print("Exiting after: %d attempt. The value is not interesting" % (x+1))
+            break
+
         print("median value so far %f (ROUND %d)" % (report['median_value'], x + 1))
     pp(report)
     return(report)
