@@ -127,8 +127,9 @@ if __name__ == '__main__':
     for n in range(25):
         top_k = np.random.randint(0,1000)
         shrink = np.random.randint(0,1000)
-        similarity = 'cosine'
+        similarity = 'tanimoto'
         results.append(multiple_evaluation(
-            UserCFKNNRecommender(fallback_recommender=TopPopRecommender()), [top_k, shrink, True, similarity], round=5))
+            ItemCFKNNRecommender(fallback_recommender=TopPopRecommender()), [top_k, shrink, True, similarity],
+            round=5, use_group_evaluation=True))
         results.sort(key=lambda dictionary: dictionary['median_value'], reverse=True)
     pp(results)
