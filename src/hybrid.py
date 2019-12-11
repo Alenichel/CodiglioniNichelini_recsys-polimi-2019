@@ -110,13 +110,15 @@ if __name__ == '__main__':
 
     weights_list = []
     maps = []
-    for _ in range(100):
+    x = []
+    for i in range(100):
+        x.append(i)
         weights = np.random.rand(4)
-        print(weights)
         hybrid = HybridRecommender([cf, user_cf, slim, cbf_rec], merging_type=MergingTechniques.WEIGHTS, weights=weights)
         result = evaluate(hybrid, urm_test)['MAP']
         maps.append(result)
-        plt.scatter(maps)
+        plt.scatter(x, maps)
         plt.show()
+        print(weights, result)
         weights_list.append((weights, result))
     print(sorted(weights_list, key=lambda x: x[1]))
