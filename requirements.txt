@@ -7,3 +7,4 @@ lightfm
 matplotlib
 torch
 torchvision
+scikit-optimize
