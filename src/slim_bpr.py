@@ -129,7 +129,6 @@ class SLIM_BPR:
 
 
 if __name__ == '__main__':
-    '''
     EXPORT = False
     urm, icm, target_users = build_all_matrices()
     if EXPORT:
@@ -137,32 +136,11 @@ if __name__ == '__main__':
         urm_test = None
     else:
         urm_train, urm_test = train_test_split(urm, SplitType.LOO_CYTHON)
-    cbf_rec = ItemCBFKNNRecommender()
-    cbf_rec.fit(urm_train, icm)
     tp_rec = TopPopRecommender()
     tp_rec.fit(urm_train)
     slim_rec = CYTHON_SLIM_BPR(use_tailboost=False, fallback_recommender=tp_rec)
-    slim_rec.fit(urm_train, epochs=100)
+    slim_rec.fit(urm_train, epochs=120, topK=50)
     if EXPORT:
         export(target_users, slim_rec)
     else:
         evaluate(slim_rec, urm_test)
-    '''
-    urm, _, _ = build_all_matrices()
-    urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
-    top_pop = TopPopRecommender()
-    top_pop.fit(urm_train)
-    top_k_ticks = []
-    maps_at_top_k = []
-    while True:
-        top_k = np.random.randint(1000)
-        top_k_ticks.append(top_k)
-        print('Evaluating top_k={0}'.format(top_k))
-        slim = CYTHON_SLIM_BPR(fallback_recommender=top_pop)
-        slim.fit(urm_train, epochs=1, top_k=top_k)
-        maps_at_top_k.append(evaluate(slim, urm_test, cython=True)['MAP'])
-        results = [(top_k_ticks[k], maps_at_top_k[k]) for k in range(len(top_k_ticks))]
-        results = sorted(results, key=lambda x: x[1])[::-1]
-        print(results)
-        plt.scatter(top_k_ticks, maps_at_top_k)
-        plt.show()

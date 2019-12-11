@@ -100,7 +100,7 @@ if __name__ == '__main__':
     cf.fit(urm_train, top_k=5, shrink=20, similarity='tanimoto')
 
     slim = SLIM_BPR(fallback_recommender=tp_rec)
-    slim.fit(urm_train, epochs=300)
+    slim.fit(urm_train, epochs=120)
 
     user_cf = UserCFKNNRecommender(fallback_recommender=tp_rec)
     user_cf.fit(urm_train, top_k=715, shrink=60, normalize=True, similarity='tanimoto')
@@ -108,9 +108,15 @@ if __name__ == '__main__':
     cbf_rec = ItemCBFKNNRecommender()
     cbf_rec.fit(urm_train, icm)
 
-    hybrid = HybridRecommender([cf, user_cf, slim, cbf_rec], merging_type=MergingTechniques.WEIGHTS, weights=[0.25, 0.25, 0.25, 0.25])
-
-    if EXPORT:
-        export(target_users, hybrid)
-    else:
-        evaluate(hybrid, urm_test)
+    weights_list = []
+    maps = []
+    for _ in range(100):
+        weights = np.random.rand(4)
+        print(weights)
+        hybrid = HybridRecommender([cf, user_cf, slim, cbf_rec], merging_type=MergingTechniques.WEIGHTS, weights=weights)
+        result = evaluate(hybrid, urm_test)['MAP']
+        maps.append(result)
+        plt.scatter(maps)
+        plt.show()
+        weights_list.append((weights, result))
+    print(sorted(weights_list, key=lambda x: x[1]))
