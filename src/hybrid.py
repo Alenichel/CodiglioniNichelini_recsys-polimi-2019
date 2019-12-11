@@ -49,6 +49,7 @@ class HybridRecommender:
         return scores
 
     def recommend_weights(self, user_id, at=10, exclude_seen=True):
+        assert self.weights is not None
         scores = self.get_scores(user_id, exclude_seen)
         ranking = scores.argsort()[::-1]
         return ranking[:at]
