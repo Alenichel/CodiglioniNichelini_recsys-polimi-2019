@@ -40,7 +40,6 @@ class HybridRecommender:
             self.recommend = self.reccomend_excluding_from_cf
         else:
             raise ValueError('merging_type is not an instance of MergingTechnique')
-        print(self.recommend)
 
     def get_scores(self, user_id, exclude_seen=True):
         assert self.weights is not None
@@ -83,6 +82,7 @@ class HybridRecommender:
 
 
 def ranged_rand(low=0.0, high=1.0):
+    assert 1.0 >= high >= low >= 0.0
     x = np.random.rand()
     if low <= x <= high:
         return x
