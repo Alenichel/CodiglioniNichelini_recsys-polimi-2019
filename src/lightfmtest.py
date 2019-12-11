@@ -22,9 +22,9 @@ class LightFMRecommender:
         self.n_users, self.n_items = self.urm.shape
         self.arange_items = np.arange(self.n_items)
         if partial:
-            self.model.fit_partial(self.urm, epochs=epochs, verbose=True)
+            self.model = self.model.fit_partial(self.urm, epochs=epochs, verbose=True)
         else:
-            self.model.fit(self.urm, item_features=icm, epochs=epochs, verbose=True)
+            self.model = self.model.fit(self.urm, item_features=icm, epochs=epochs, verbose=True)
 
     def recommend(self, user_id, at=10, exclude_seen=True):
         scores = self.model.predict(user_id, self.arange_items, item_features=icm)
@@ -48,12 +48,12 @@ if __name__ == '__main__':
         urm_train = urm
         urm_test = None
     else:
-        urm_train, urm_test = train_test_split(urm, SplitType.LOO_CYTHON)
+        urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
     model = LightFM(loss='warp-kos', learning_schedule='adadelta')
     x = []
     precisions = []
-    TOTAL_EPOCHS = 200
-    EPOCHS_PER_BATCH = 10
+    TOTAL_EPOCHS = 1000
+    EPOCHS_PER_BATCH = 100
     for epoch in trange(TOTAL_EPOCHS // EPOCHS_PER_BATCH, desc='Training'):
         for batch_epoch in trange(EPOCHS_PER_BATCH, desc='Batch'):
             model.fit_partial(urm_train, item_features=icm, epochs=1)
