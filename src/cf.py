@@ -8,6 +8,7 @@ from basic_recommenders import TopPopRecommender
 from evaluation import multiple_evaluation
 from pprint import pprint as pp
 
+
 class ItemCFKNNRecommender(object):
 
     def __init__(self, use_tail_boost=False, fallback_recommender=None):
@@ -78,7 +79,7 @@ class UserCFKNNRecommender(object):
                                                       similarity=similarity)
         self.w_sparse = similarity_object.compute_similarity()
 
-    def get_scores(self, user_id, exclude_seen=False):
+    def get_scores(self, user_id, exclude_seen=True):
         scores = self.w_sparse[user_id, :].dot(self.urm).toarray().ravel()
         if exclude_seen:
             scores = self.filter_seen(user_id, scores)

@@ -5,11 +5,11 @@ import scipy.sparse as sps
 from scipy.special import expit
 from tqdm import trange
 from basic_recommenders import TopPopRecommender
-from cbf import ItemCBFKNNRecommender
 from helper import TailBoost
 from Base.Recommender_utils import similarityMatrixTopK
 from run_utils import build_all_matrices, train_test_split, SplitType, evaluate, export
 from cython_modules.SLIM_BPR.SLIM_BPR_CYTHON import SLIM_BPR as CYTHON_SLIM_BPR
+import matplotlib.pyplot as plt
 
 
 class SLIM_BPR:
@@ -40,7 +40,7 @@ class SLIM_BPR:
     def __str__(self):
         return 'SLIM BPR'
 
-    def fit(self, urm_train, epochs=30):
+    def fit(self, urm_train, epochs=30, top_k=100):
         self.urm_train = urm_train.tocsr()
         self.n_users = urm_train.shape[0]
         self.n_items = urm_train.shape[1]
@@ -52,7 +52,7 @@ class SLIM_BPR:
         self.W = self.S.T
         del self.S
         # TODO: Check
-        self.W = similarityMatrixTopK(self.W, verbose=True).tocsr()
+        self.W = similarityMatrixTopK(self.W, k=top_k, verbose=True).tocsr()
         self.W = sps.csr_matrix(self.W)
         self.W.eliminate_zeros()
         self.tb = TailBoost(urm_train)
@@ -102,19 +102,23 @@ class SLIM_BPR:
         pos_item_id, neg_item_id = self.sample_item_pair(user_id)
         return user_id, pos_item_id, neg_item_id
 
+    def get_scores(self, user_id, exclude_seen=True):
+        user_profile = self.urm_train[user_id]
+        scores = user_profile.dot(self.W).toarray().ravel()
+        if exclude_seen:
+            scores = self.filter_seen(user_id, scores)
+        return scores
+
     def recommend(self, user_id, at=None, exclude_seen=True):
-        # compute the scores using the dot product
         user_profile = self.urm_train[user_id]
         if self.fallback_recommender and user_profile.nnz == 0:
             return self.fallback_recommender.recommend(user_id, at, exclude_seen)
-        scores = user_profile.dot(self.W)
-        scores = scores.toarray().ravel()
-        if exclude_seen:
-            scores = self.filter_seen(user_id, scores)
-        if self.use_tailboost:
-            scores = self.tb.update_scores(scores)
-        ranking = scores.argsort()[::-1]
-        return ranking[:at]
+        else:
+            scores = self.get_scores(user_id, exclude_seen)
+            if self.use_tailboost:
+                scores = self.tb.update_scores(scores)
+            ranking = scores.argsort()[::-1]
+            return ranking[:at]
 
     def filter_seen(self, user_id, scores):
         start_pos = self.urm_train.indptr[user_id]
@@ -125,6 +129,7 @@ class SLIM_BPR:
 
 
 if __name__ == '__main__':
+    '''
     EXPORT = False
     urm, icm, target_users = build_all_matrices()
     if EXPORT:
@@ -142,3 +147,22 @@ if __name__ == '__main__':
         export(target_users, slim_rec)
     else:
         evaluate(slim_rec, urm_test)
+    '''
+    urm, _, _ = build_all_matrices()
+    urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
+    top_pop = TopPopRecommender()
+    top_pop.fit(urm_train)
+    top_k_ticks = []
+    maps_at_top_k = []
+    while True:
+        top_k = np.random.randint(1000)
+        top_k_ticks.append(top_k)
+        print('Evaluating top_k={0}'.format(top_k))
+        slim = CYTHON_SLIM_BPR(fallback_recommender=top_pop)
+        slim.fit(urm_train, epochs=1, top_k=top_k)
+        maps_at_top_k.append(evaluate(slim, urm_test, cython=True)['MAP'])
+        results = [(top_k_ticks[k], maps_at_top_k[k]) for k in range(len(top_k_ticks))]
+        results = sorted(results, key=lambda x: x[1])[::-1]
+        print(results)
+        plt.scatter(top_k_ticks, maps_at_top_k)
+        plt.show()
