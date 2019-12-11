@@ -70,7 +70,10 @@ def multiple_evaluation(rec_sys, parameters, round=5, interesting_threshold=-np.
         'param': str(parameters)
     }
     for x in range(round):
-        urm_train, urm_test = train_test_split(urm, SplitType.LOO)
+        try:
+            urm_train, urm_test = train_test_split(urm, SplitType.LOO_CYTHON)
+        except:
+            urm_train, urm_test = train_test_split(urm, SplitType.LOO)
         n_users, n_items = urm_train.shape
         try:                                                        # check for fallback rc
             if rec_sys.fallback_recommender:
