@@ -82,6 +82,13 @@ class HybridRecommender:
         return l[:at]
 
 
+def ranged_rand(low=0.0, high=1.0):
+    x = np.random.rand()
+    if low <= x <= high:
+        return x
+    return ranged_rand(low, high)
+
+
 if __name__ == '__main__':
 
     EXPORT = False
@@ -113,7 +120,12 @@ if __name__ == '__main__':
     x = []
     for i in range(100):
         x.append(i)
-        weights = np.random.rand(4)
+        weights = [
+            ranged_rand(0.5, 1.0),  # Item-CF
+            ranged_rand(0.3, 1.0),  # User-CF
+            ranged_rand(0.5, 1.0),  # SLIM
+            ranged_rand(0.0, 1.0),  # CBF
+        ]
         hybrid = HybridRecommender([cf, user_cf, slim, cbf_rec], merging_type=MergingTechniques.WEIGHTS, weights=weights)
         result = evaluate(hybrid, urm_test)['MAP']
         maps.append(result)

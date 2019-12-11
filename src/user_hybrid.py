@@ -6,7 +6,7 @@ from run_utils import build_all_matrices, train_test_split, SplitType, evaluate
 from basic_recommenders import TopPopRecommender, RandomRecommender
 from cbf import ItemCBFKNNRecommender
 from cf import ItemCFKNNRecommender, UserCFKNNRecommender
-from slim_bpr import SLIM_BPR
+from cython_modules.SLIM_BPR.SLIM_BPR_CYTHON import SLIM_BPR as SLIM_BPR_Cython
 
 
 class UserSegmenter:
@@ -79,18 +79,18 @@ if __name__ == '__main__':
         urm_train = urm.tocsr()
         urm_test = None
     else:
-        urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
+        urm_train, urm_test = train_test_split(urm, SplitType.LOO_CYTHON)
 
     top_pop = TopPopRecommender()
     top_pop.fit(urm_train)
     item_cbf = ItemCBFKNNRecommender()
     item_cbf.fit(urm_train, icm)
     user_cf = UserCFKNNRecommender()
-    user_cf.fit(urm_train, top_k=551, shrink=702)
+    user_cf.fit(urm_train, top_k=715, shrink=60, similarity='tanimoto')
     item_cf = ItemCFKNNRecommender()
     item_cf.fit(urm_train, top_k=5, shrink=20, similarity='tanimoto')
-    slim_bpr = SLIM_BPR()
-    slim_bpr.fit(urm_train, epochs=100)
+    slim_bpr = SLIM_BPR_Cython()
+    slim_bpr.fit(urm_train, epochs=120)
     recommenders = [top_pop, item_cbf, user_cf, item_cf, slim_bpr]
     '''
 
