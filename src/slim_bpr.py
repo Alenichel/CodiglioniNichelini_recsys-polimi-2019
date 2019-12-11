@@ -9,6 +9,7 @@ from cbf import ItemCBFKNNRecommender
 from helper import TailBoost
 from Base.Recommender_utils import similarityMatrixTopK
 from run_utils import build_all_matrices, train_test_split, SplitType, evaluate, export
+from cython_modules.SLIM_BPR.SLIM_BPR_CYTHON import SLIM_BPR as CYTHON_SLIM_BPR
 
 
 class SLIM_BPR:
@@ -17,7 +18,13 @@ class SLIM_BPR:
     The code is identical with no optimizations
     """
 
-    def __init__(self, lambda_i=0.0025, lambda_j=0.00025, learning_rate=0.05, fallback_recommender=None, use_tailboost=False):
+    def __init__(self,
+                 lambda_i=0.0025,
+                 lambda_j=0.00025,
+                 learning_rate=0.05,
+                 fallback_recommender=None,
+                 use_tailboost=False):
+
         self.urm_train = None
         self.n_users = None
         self.n_items = None
@@ -124,13 +131,13 @@ if __name__ == '__main__':
         urm_train = urm.tocsr()
         urm_test = None
     else:
-        urm_train, urm_test = train_test_split(urm, SplitType.LOO)
+        urm_train, urm_test = train_test_split(urm, SplitType.LOO_CYTHON)
     cbf_rec = ItemCBFKNNRecommender()
     cbf_rec.fit(urm_train, icm)
     tp_rec = TopPopRecommender()
     tp_rec.fit(urm_train)
-    slim_rec = SLIM_BPR(use_tailboost=False, fallback_recommender=tp_rec)
-    slim_rec.fit(urm_train, epochs=15)
+    slim_rec = CYTHON_SLIM_BPR(use_tailboost=False, fallback_recommender=tp_rec)
+    slim_rec.fit(urm_train, epochs=100)
     if EXPORT:
         export(target_users, slim_rec)
     else:
