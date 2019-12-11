@@ -4,12 +4,11 @@ import numpy as np
 import scipy.sparse as sps
 from scipy.special import expit
 from tqdm import trange
-from basic_recommenders import TopPopRecommender
-from cbf import ItemCBFKNNRecommender
 from helper import TailBoost
 from Base.Recommender_utils import similarityMatrixTopK
-from run_utils import build_all_matrices, train_test_split, SplitType, evaluate, export
-from cython_modules.slim_bpr_cython import SLIM_BPR as SLIM_BPR_CYTHON
+
+cimport cython
+cimport numpy as np
 
 
 class SLIM_BPR:
@@ -52,18 +51,22 @@ class SLIM_BPR:
         self.tb = TailBoost(urm_train)
 
     def epoch_iteration(self):
-        num_positive_interactions = int(self.urm_train.nnz * 0.01)
+        cdef int num_positive_interactions = int(self.urm_train.nnz * 0.01)
+        cdef int user_id, pos_item_id, neg_item_id
         for _ in trange(num_positive_interactions, desc='Epoch iteration'):
             user_id, pos_item_id, neg_item_id = self.sample_triple()
             self.update_factors(user_id, pos_item_id, neg_item_id)
 
-    def update_factors(self, user_id, pos_item_id, neg_item_id):
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    def update_factors(self, int user_id, int pos_item_id, int neg_item_id):
         # Calculate current predicted score
-        user_seen_items = self.urm_train[user_id].indices
-        prediction = 0
+        cdef np.ndarray user_seen_items = self.urm_train[user_id].indices
+        cdef double prediction = 0
         for user_seen_item in user_seen_items:
             prediction += self.S[pos_item_id, user_seen_item] - self.S[neg_item_id, user_seen_item]
-        x_uij = prediction
+        cdef double x_uij = prediction
+        cdef double update
         logistic_function = expit(-x_uij)
         # Update similarities for all items except those sampled
         for user_seen_item in user_seen_items:
@@ -83,16 +86,18 @@ class SLIM_BPR:
             if 0 < num_seen_items < self.n_items:
                 return user_id
 
-    def sample_item_pair(self, user_id):
-        user_seen_items = self.urm_train[user_id].indices
-        pos_item_id = user_seen_items[np.random.randint(0, len(user_seen_items))]
+    def sample_item_pair(self, int user_id):
+        cdef np.ndarray user_seen_items = self.urm_train[user_id].indices
+        cdef int pos_item_id = user_seen_items[np.random.randint(0, len(user_seen_items))]
+        cdef int neg_item_id
         while True:
             neg_item_id = np.random.randint(0, self.n_items)
             if neg_item_id not in user_seen_items:
                 return pos_item_id, neg_item_id
 
     def sample_triple(self):
-        user_id = self.sample_user()
+        cdef int user_id = self.sample_user()
+        cdef int pos_item_id, neg_item_id
         pos_item_id, neg_item_id = self.sample_item_pair(user_id)
         return user_id, pos_item_id, neg_item_id
 
@@ -116,49 +121,3 @@ class SLIM_BPR:
         user_profile = self.urm_train.indices[start_pos:end_pos]
         scores[user_profile] = -np.inf
         return scores
-
-
-def main():
-    print('Pure Python SLIM BPR')
-    EXPORT = False
-    urm, icm, target_users = build_all_matrices()
-    if EXPORT:
-        urm_train = urm.tocsr()
-        urm_test = None
-    else:
-        urm_train, urm_test = train_test_split(urm, SplitType.LOO_CYTHON)
-    cbf_rec = ItemCBFKNNRecommender()
-    cbf_rec.fit(urm_train, icm)
-    tp_rec = TopPopRecommender()
-    tp_rec.fit(urm_train)
-    slim_rec = SLIM_BPR(use_tailboost=False, fallback_recommender=tp_rec)
-    slim_rec.fit(urm_train, epochs=15)
-    if EXPORT:
-        export(target_users, slim_rec)
-    else:
-        evaluate(slim_rec, urm_test)
-
-
-def main_cython():
-    print('Cython SLIM BPR')
-    EXPORT = False
-    urm, icm, target_users = build_all_matrices()
-    if EXPORT:
-        urm_train = urm.tocsr()
-        urm_test = None
-    else:
-        urm_train, urm_test = train_test_split(urm, SplitType.LOO_CYTHON)
-    cbf_rec = ItemCBFKNNRecommender()
-    cbf_rec.fit(urm_train, icm)
-    tp_rec = TopPopRecommender()
-    tp_rec.fit(urm_train)
-    slim_rec = SLIM_BPR_CYTHON(use_tailboost=False, fallback_recommender=tp_rec)
-    slim_rec.fit(urm_train, epochs=15)
-    if EXPORT:
-        export(target_users, slim_rec)
-    else:
-        evaluate(slim_rec, urm_test)
-
-
-if __name__ == '__main__':
-    main_cython()
