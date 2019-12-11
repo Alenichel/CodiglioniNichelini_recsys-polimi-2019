@@ -59,7 +59,7 @@ def evaluate_algorithm(recommender_object, urm_test, at=10, excluded_users=[]):
     return result_dict
 
 
-def multiple_evaluation(rec_sys, parameters, round=5, interesting_threshold=np.inf, use_group_evaluation=False):
+def multiple_evaluation(rec_sys, parameters, round=5, interesting_threshold=-np.inf, use_group_evaluation=False):
     from cbf import ItemCBFKNNRecommender
     urm, icm, target_users = build_all_matrices()
     cumulativeMAP = 0
@@ -70,7 +70,10 @@ def multiple_evaluation(rec_sys, parameters, round=5, interesting_threshold=np.i
         'param': str(parameters)
     }
     for x in range(round):
-        urm_train, urm_test = train_test_split(urm, SplitType.LOO)
+        try:
+            urm_train, urm_test = train_test_split(urm, SplitType.LOO_CYTHON)
+        except:
+            urm_train, urm_test = train_test_split(urm, SplitType.LOO)
         n_users, n_items = urm_train.shape
         try:                                                        # check for fallback rc
             if rec_sys.fallback_recommender:
