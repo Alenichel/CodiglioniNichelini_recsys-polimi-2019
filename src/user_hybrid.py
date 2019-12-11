@@ -28,15 +28,10 @@ class UserSegmenter:
             start_pos = group_id * group_size
             end_pos = min((group_id + 1) * group_size, len(profile_length))
             users_in_group = sorted_users[start_pos:end_pos]
-            users_in_groups += [users_in_group]
-            users_in_group_p_len = profile_length[users_in_group]
-            """print('Group {}, average p.len {:.2f}, min {}, max {}'.format(group_id,
-                                                                          users_in_group_p_len.mean(),
-                                                                          users_in_group_p_len.min(),
-                                                                          users_in_group_p_len.max()))"""
+            users_in_groups.append(users_in_group)
             users_not_in_group_flag = np.isin(sorted_users, users_in_group, invert=True)
             users_not_in_group = sorted_users[users_not_in_group_flag]
-            users_not_in_groups += [users_not_in_group]
+            users_not_in_groups.append(users_not_in_group)
         return users_in_groups, users_not_in_groups
 
     def analyze(self, group_size_percent=0.1):

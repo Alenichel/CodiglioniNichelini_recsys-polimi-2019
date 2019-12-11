@@ -45,6 +45,9 @@ class SLIMElasticNetRecommender:
         for currentItem in trange(n_items):
             # get the target column
             y = urm_train[:, currentItem].toarray()
+            if y.sum() == 0:
+                continue
+
             # set the j-th column of X to zero
             start_pos = urm_train.indptr[currentItem]
             end_pos = urm_train.indptr[currentItem + 1]
@@ -123,7 +126,7 @@ if __name__ == '__main__':
         urm_train = urm.tocsr()
         urm_test = None
     else:
-        urm_train, urm_test = train_test_split(urm, SplitType.LOO)
+        urm_train, urm_test = train_test_split(urm, SplitType.LOO_CYTHON)
     rec = SLIMElasticNetRecommender()
     rec.fit(urm_train)
     if EXPORT:
