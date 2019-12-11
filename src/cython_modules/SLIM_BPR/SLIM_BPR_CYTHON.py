@@ -14,6 +14,7 @@ from cython_modules.CythonCompiler.run_compile_subprocess import run_compile_sub
 import os, sys
 
 import numpy as np
+from helper import TailBoost
 
 def estimate_required_MB(n_items, symmetric):
     requiredMB = 8 * n_items**2 / 1e+06
@@ -41,8 +42,6 @@ class SLIM_BPR(Incremental_Training_Early_Stopping):
         return self.RECOMMENDER_NAME
 
     def __init__(self,
-                 verbose = True,
-                 free_mem_threshold = 0.5,
                  recompile_cython = False,
                  use_tailboost=False,
                  fallback_recommender=None
@@ -53,6 +52,8 @@ class SLIM_BPR(Incremental_Training_Early_Stopping):
         self.W = None
         self.fallback_recommender=fallback_recommender
         self.use_tailboost = use_tailboost
+        self.symmetric = None
+        self.tb = None
 
         #super(SLIM_BPR, self).__init__(URM_train)
         #self.free_mem_threshold = free_mem_threshold
@@ -71,7 +72,6 @@ class SLIM_BPR(Incremental_Training_Early_Stopping):
             sgd_mode='adagrad', gamma=0.995, beta_1=0.9, beta_2=0.999,
             **earlystopping_kwargs):
 
-
         # Import compiled module
         from cython_modules.SLIM_BPR.SLIM_BPR_Cython_Epoch import SLIM_BPR_Cython_Epoch
         self.urm_train = urm_train
@@ -79,21 +79,8 @@ class SLIM_BPR(Incremental_Training_Early_Stopping):
         self.symmetric = symmetric
         self.train_with_sparse_weights = train_with_sparse_weights
 
-        if self.train_with_sparse_weights is None:
-            # auto select
-            required_m = estimate_required_MB(self.n_items, self.symmetric)
-            total_m, _, available_m = get_RAM_status()
-            if total_m is not None:
-                string = "Automatic selection of fastest train mode. Available RAM is {:.2f} MB ({:.2f}%) of {:.2f} MB, required is {:.2f} MB. ".format(available_m, available_m/total_m*100 , total_m, required_m)
-            else:
-                string = "Automatic selection of fastest train mode. Unable to get current RAM status, you may be using a non-Linux operating system. "
-
-            if total_m is None or required_m/available_m < self.free_mem_threshold:
-                print(string + "Using dense matrix.")
-                self.train_with_sparse_weights = False
-            else:
-                print(string + "Using sparse matrix.")
-                self.train_with_sparse_weights = True
+        self.train_with_sparse_weights = False
+        #self.train_with_sparse_weights = True
 
         # Select only positive interactions
         URM_train_positive = self.urm_train.copy()
@@ -113,13 +100,13 @@ class SLIM_BPR(Incremental_Training_Early_Stopping):
                                                  final_model_sparse_weights = True,
                                                  topK=topK,
                                                  learning_rate=learning_rate,
-                                                 li_reg = lambda_i,
-                                                 lj_reg = lambda_j,
+                                                 li_reg=lambda_i,
+                                                 lj_reg=lambda_j,
                                                  batch_size=1,
-                                                 symmetric = self.symmetric,
-                                                 sgd_mode = sgd_mode,
-                                                 verbose = True,
-                                                 random_seed = random_seed,
+                                                 symmetric=self.symmetric,
+                                                 sgd_mode=sgd_mode,
+                                                 verbose=True,
+                                                 random_seed=random_seed,
                                                  gamma=gamma,
                                                  beta_1=beta_1,
                                                  beta_2=beta_2)
@@ -137,11 +124,9 @@ class SLIM_BPR(Incremental_Training_Early_Stopping):
                                         algorithm_name = self.RECOMMENDER_NAME,
                                         **earlystopping_kwargs)
         self.get_S_incremental_and_set_W()
+        self.tb = TailBoost(urm_train)
         self.cythonEpoch._dealloc()
         sys.stdout.flush()
-
-
-
 
     def _prepare_model_for_validation(self):
         self.get_S_incremental_and_set_W()
@@ -153,7 +138,6 @@ class SLIM_BPR(Incremental_Training_Early_Stopping):
        self.cythonEpoch.epochIteration_Cython()
 
     def get_S_incremental_and_set_W(self):
-
         self.S_incremental = self.cythonEpoch.get_S()
 
         if self.train_with_sparse_weights:
@@ -182,13 +166,18 @@ class SLIM_BPR(Incremental_Training_Early_Stopping):
         scores[user_profile] = -np.inf
         return scores
 
+    def get_scores(self, user_id):
+        user_profile = self.urm_train[user_id]
+        scores = user_profile.dot(self.W)
+        scores = scores.toarray().ravel()
+        return scores
+
     def recommend(self, user_id, at=None, exclude_seen=True):
         # compute the scores using the dot product
         user_profile = self.urm_train[user_id]
         if self.fallback_recommender and user_profile.nnz == 0:
             return self.fallback_recommender.recommend(user_id, at, exclude_seen)
-        scores = user_profile.dot(self.W)
-        scores = scores.toarray().ravel()
+        scores = self.get_scores(user_id)
         if exclude_seen:
             scores = self.filter_seen(user_id, scores)
         if self.use_tailboost:
