@@ -166,10 +166,12 @@ class SLIM_BPR(Incremental_Training_Early_Stopping):
         scores[user_profile] = -np.inf
         return scores
 
-    def get_scores(self, user_id):
+    def get_scores(self, user_id, exclude_seen=True):
         user_profile = self.urm_train[user_id]
         scores = user_profile.dot(self.W)
         scores = scores.toarray().ravel()
+        if exclude_seen:
+            scores = self.filter_seen(user_id, scores)
         return scores
 
     def recommend(self, user_id, at=None, exclude_seen=True):
