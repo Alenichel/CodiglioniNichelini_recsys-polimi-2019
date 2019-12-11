@@ -50,9 +50,9 @@ if __name__ == '__main__':
         urm_train = urm.tocsr()
         urm_test = None
     else:
-        urm_train, urm_test = train_test_split(urm, SplitType.LOO)
+        urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
     cbf_rec = ItemCBFKNNRecommender()
-    cbf_rec.fit(urm_train, icm, top_k=5, shrink=20, similarity='tanimoto')
+    cbf_rec.fit(urm_train, icm)
     if EXPORT:
         export(target_users, cbf_rec)
     else:

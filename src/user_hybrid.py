@@ -79,22 +79,19 @@ if __name__ == '__main__':
         urm_train = urm.tocsr()
         urm_test = None
     else:
-        urm_train, urm_test = train_test_split(urm, SplitType.LOO_CYTHON)
+        urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
 
-    '''
-    random = RandomRecommender()
-    random.fit(urm_train)
     top_pop = TopPopRecommender()
     top_pop.fit(urm_train)
     item_cbf = ItemCBFKNNRecommender()
     item_cbf.fit(urm_train, icm)
     user_cf = UserCFKNNRecommender()
-    user_cf.fit(urm_train)
+    user_cf.fit(urm_train, top_k=551, shrink=702)
     item_cf = ItemCFKNNRecommender()
     item_cf.fit(urm_train, top_k=5, shrink=20, similarity='tanimoto')
     slim_bpr = SLIM_BPR()
     slim_bpr.fit(urm_train, epochs=100)
-    recommenders = [random, top_pop, item_cbf, user_cf, item_cf, slim_bpr]
+    recommenders = [top_pop, item_cbf, user_cf, item_cf, slim_bpr]
     '''
 
     rec1 = UserCFKNNRecommender()
@@ -104,6 +101,7 @@ if __name__ == '__main__':
     rec3 = ItemCFKNNRecommender()
     rec3.fit(urm_train, top_k=5, shrink=20, similarity='tanimoto')
     recommenders = [rec1, rec2, rec3]
+    '''
 
     user_segmenter = UserSegmenter(recommenders, urm_train, urm_test)
     user_segmenter.analyze(group_size_percent=0.05)
