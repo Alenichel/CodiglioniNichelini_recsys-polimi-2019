@@ -2,23 +2,24 @@
 
 import numpy as np
 from run_utils import build_all_matrices, train_test_split, SplitType, evaluate
-from cf import ItemCFKNNRecommender
+from cf import ItemCFKNNRecommender, UserCFKNNRecommender
+from cbf import ItemCBFKNNRecommender
 from skopt.space import Integer, Categorical
 from tqdm import trange
 
 
 class RandomTuner:
 
-    def __init__(self, recommender_class, urm, fit_params_ranges):
+    def __init__(self, recommender_class, urm, icm, fit_params_ranges):
         self.recommender_class = recommender_class
+        self.needs_icm = self.recommender_class in [ItemCBFKNNRecommender]
         self.urm = urm
+        self.icm = icm
         self.fit_params_ranges = fit_params_ranges
 
-    def tune(self, n_rounds=100):
+    def tune(self, n_rounds=100, n_rounds_per_rec=10):
         results = list()
-        for _ in trange(n_rounds):
-            urm_train, urm_test = train_test_split(self.urm, split_type=SplitType.LOO_CYTHON)
-            recommender = self.recommender_class()
+        for _ in trange(n_rounds, desc='Rounds'):
             fit_params = dict()
             for k in self.fit_params_ranges.keys():
                 param_range = self.fit_params_ranges[k]
@@ -27,9 +28,17 @@ class RandomTuner:
                 elif isinstance(param_range, Categorical):
                     fit_params[k] = np.random.choice(param_range.categories)
             print(fit_params)
-            recommender.fit(urm_train, **fit_params)
-            map = evaluate(recommender, urm_test, cython=True)['MAP']
-            results.append((fit_params, map))
+            round_maps = []
+            for _ in trange(n_rounds_per_rec, desc='Rec rounds'):
+                urm_train, urm_test = train_test_split(self.urm, split_type=SplitType.PROBABILISTIC)
+                recommender = self.recommender_class()
+                if self.needs_icm:
+                    recommender.fit(urm_train, self.icm, **fit_params)
+                else:
+                    recommender.fit(urm_train, **fit_params)
+                round_maps.append(evaluate(recommender, urm_test, cython=True)['MAP'])
+            result_map = sum(round_maps) / n_rounds_per_rec
+            results.append((fit_params, result_map))
         return sorted(results, key=lambda x: x[1])[::-1]
 
 
@@ -40,7 +49,8 @@ if __name__ == '__main__':
         'similarity': Categorical(['cosine', 'tanimoto']),
         'normalize': Categorical([True, False])
     }
-    urm, _, _ = build_all_matrices()
-    tuner = RandomTuner(ItemCFKNNRecommender, urm, fit_params_ranges)
-    results = tuner.tune(3)
-    print(results)
+    urm, icm, _ = build_all_matrices()
+    tuner = RandomTuner(ItemCBFKNNRecommender, urm, icm, fit_params_ranges)
+    results = tuner.tune(n_rounds=10)
+    for r in results[::-1]:
+        print(r)
