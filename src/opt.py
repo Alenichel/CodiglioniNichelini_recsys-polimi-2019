@@ -18,7 +18,7 @@ def to_optimize(w_cf, w_ucf, w_slim, w_cbf):
 if __name__ == '__main__':
 
     EXPORT = False
-    urm, icm, target_users = build_all_matrices()
+    urm, icm, ucm, target_users = build_all_matrices()
     if EXPORT:
         urm_train = urm.tocsr()
         urm_test = None
