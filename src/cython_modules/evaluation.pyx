@@ -23,7 +23,7 @@ cdef MAP(np.ndarray is_relevant, np.ndarray relevant_items):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def evaluate_cython(recommender_object, urm_test, int at=10):
+def evaluate_cython(recommender_object, urm_test, int at=10, verbose=True):
     cdef double cumulative_precision = 0.0
     cdef double cumulative_recall = 0.0
     cdef double cumulative_MAP = 0.0
@@ -34,7 +34,7 @@ def evaluate_cython(recommender_object, urm_test, int at=10):
     cdef np.ndarray relevant_items
     cdef np.ndarray recommended_items
     cdef np.ndarray is_relevant
-    for user_id in trange(n_users, desc='Evaluation'):
+    for user_id in range(n_users, desc='Evaluation') if verbose is True else range(n_users):
         start_pos = urm_test.indptr[user_id]
         end_pos = urm_test.indptr[user_id+1]
         if end_pos - start_pos > 0:
@@ -48,10 +48,11 @@ def evaluate_cython(recommender_object, urm_test, int at=10):
     cumulative_precision /= num_eval
     cumulative_recall /= num_eval
     cumulative_MAP /= num_eval
-    print('Recommender performance is:')
-    print('    Precision = {:.5f}'.format(cumulative_precision))
-    print('    Recall    = {:.5f}'.format(cumulative_recall))
-    print('    MAP       = {:.5f}'.format(cumulative_MAP))
+    if verbose:
+        print('Recommender performance is:')
+        print('    Precision = {:.5f}'.format(cumulative_precision))
+        print('    Recall    = {:.5f}'.format(cumulative_recall))
+        print('    MAP       = {:.5f}'.format(cumulative_MAP))
     result_dict = {
         "precision": cumulative_precision,
         "recall": cumulative_recall,

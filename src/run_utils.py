@@ -100,10 +100,12 @@ def train_test_split(urm, split_type=SplitType.LOO, split=0.8):
 def evaluate(recommender, urm_test, excluded_users=[], cython=False, verbose=True):
     from evaluation import evaluate_algorithm
     if cython:
-        print('Ignoring argument excluded_users')
+        if verbose:
+            print('Ignoring argument excluded_users')
         from cython_modules.evaluation import evaluate_cython
-        print('Using Cython evaluation')
-        return evaluate_cython(recommender, urm_test)
+        if verbose:
+            print('Using Cython evaluation')
+        return evaluate_cython(recommender, urm_test, verbose=verbose)
     else:
         return evaluate_algorithm(recommender, urm_test, excluded_users=excluded_users, verbose=verbose)
 

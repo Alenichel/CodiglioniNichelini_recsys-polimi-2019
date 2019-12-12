@@ -47,7 +47,7 @@ if __name__ == '__main__':
         f=to_optimize,
         pbounds=pbounds,
         random_state=1,
-        verbose=2
+        verbose=3
     )
 
     optimizer.maximize(
