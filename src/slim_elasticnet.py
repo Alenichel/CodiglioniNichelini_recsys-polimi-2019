@@ -17,7 +17,7 @@ class SLIMElasticNetRecommender:
         self.W_sparse = None
 
     @ignore_warnings(category=ConvergenceWarning)
-    def fit(self, urm_train, l1_penalty=0.1, l2_penalty=0.1, positive_only=True, topK=100):
+    def fit(self, urm_train, l1_penalty=0.01, l2_penalty=0.01, positive_only=True, topK=100):
         self.urm_train = urm_train
         if l1_penalty + l2_penalty != 0:
             l1_ratio = l1_penalty / (l1_penalty + l2_penalty)
@@ -31,7 +31,7 @@ class SLIMElasticNetRecommender:
                                 copy_X=False,
                                 precompute=True,
                                 selection='random',
-                                max_iter=100,
+                                max_iter=1000,
                                 tol=1e-4)
         urm_train = sps.csc_matrix(self.urm_train)
         n_items = urm_train.shape[1]

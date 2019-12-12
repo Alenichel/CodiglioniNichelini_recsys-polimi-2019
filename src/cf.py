@@ -103,26 +103,25 @@ class UserCFKNNRecommender(object):
         scores[user_profile] = -np.inf
         return scores
 
-"""
+
 if __name__ == '__main__':
     EXPORT = False
-    urm, icm, target_users = build_all_matrices()
+    urm, icm, ucm, target_users = build_all_matrices()
     if EXPORT:
         urm_train = urm.tocsr()
         urm_test = None
     else:
         urm_train, urm_test = train_test_split(urm, SplitType.LOO_CYTHON)
-    top_pop_rec = TopPopRecommender()
-    top_pop_rec.fit(urm_train)
-    user_cf_rec = UserCFKNNRecommender(fallback_recommender=top_pop_rec)
-    user_cf_rec.fit(urm_train, top_k=50, shrink=100, similarity='cosine')
-    #item_cf_rec = ItemCFKNNRecommender(fallback_recommender=top_pop_rec)
-    #item_cf_rec.fit(urm_train)
+    top_pop = TopPopRecommender()
+    top_pop.fit(urm_train)
+    cf = ItemCFKNNRecommender(fallback_recommender=top_pop)
+    cf.fit(urm_train, top_k=5, shrink=20, similarity='tanimoto')
     if EXPORT:
-        export(target_users, user_cf_rec)
+        export(target_users, cf)
     else:
-        evaluate(user_cf_rec, urm_test, cython=True)"""
+        evaluate(cf, urm_test, cython=True)
 
+"""
 if __name__ == '__main__':
     results = []
     for n in range(25):
@@ -134,3 +133,4 @@ if __name__ == '__main__':
             round=5, use_group_evaluation=True))
         results.sort(key=lambda dictionary: dictionary['median_value'], reverse=True)
     pp(results)
+"""

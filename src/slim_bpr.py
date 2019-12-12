@@ -130,7 +130,7 @@ class SLIM_BPR:
 
 if __name__ == '__main__':
     EXPORT = False
-    urm, icm, target_users = build_all_matrices()
+    urm, icm, _, target_users = build_all_matrices()
     if EXPORT:
         urm_train = urm.tocsr()
         urm_test = None
@@ -139,7 +139,7 @@ if __name__ == '__main__':
     tp_rec = TopPopRecommender()
     tp_rec.fit(urm_train)
     slim_rec = CYTHON_SLIM_BPR(use_tailboost=False, fallback_recommender=tp_rec)
-    slim_rec.fit(urm_train, epochs=120, topK=50)
+    slim_rec.fit(urm_train, epochs=300, topK=50)
     if EXPORT:
         export(target_users, slim_rec)
     else:

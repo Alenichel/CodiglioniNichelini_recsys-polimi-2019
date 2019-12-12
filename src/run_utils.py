@@ -58,6 +58,22 @@ def build_icm(n_items):
     return sps.hstack((price_icm, asset_icm, subclass_icm)).tocsr()
 
 
+def build_ucm(n_users):
+    # AGE
+    age_ucm_users, age_ucm_features, age_ucm_values = __load_icm_csv(DataFiles.UCM_AGE, third_type=float)
+    n_features = max(age_ucm_features) + 1
+    shape = (n_users, n_features)
+    age_ucm = sps.csr_matrix((age_ucm_values, (age_ucm_users, age_ucm_features)), shape=shape, dtype=int)
+
+    # REGION
+    region_ucm_users, region_ucm_features, region_ucm_values = __load_icm_csv(DataFiles.UCM_REGION, third_type=float)
+    n_features = max(region_ucm_features) + 1
+    shape = (n_users, n_features)
+    region_ucm = sps.csr_matrix((region_ucm_values, (region_ucm_users, region_ucm_features)), shape=shape, dtype=int)
+
+    return sps.hstack((age_ucm, region_ucm))
+
+
 def build_target_users():
     target_users = load_csv(DataFiles.TARGET_USERS_TEST)
     return [int(x[0]) for x in target_users]
@@ -65,10 +81,11 @@ def build_target_users():
 
 def build_all_matrices():
     urm = build_urm()
-    n_items = urm.shape[1]
+    n_users, n_items = urm.shape
     icm = build_icm(n_items)
+    ucm = build_ucm(n_users)
     target_users = build_target_users()
-    return urm, icm, target_users
+    return urm, icm, ucm, target_users
 
 
 def train_test_split(urm, split_type=SplitType.LOO, split=0.8):

@@ -6,6 +6,7 @@ from run_utils import build_all_matrices, train_test_split, SplitType, evaluate
 from basic_recommenders import TopPopRecommender, RandomRecommender
 from cbf import ItemCBFKNNRecommender
 from cf import ItemCFKNNRecommender, UserCFKNNRecommender
+from hybrid import HybridRecommender, MergingTechniques
 from cython_modules.SLIM_BPR.SLIM_BPR_CYTHON import SLIM_BPR as SLIM_BPR_Cython
 
 
@@ -91,7 +92,11 @@ if __name__ == '__main__':
     item_cf.fit(urm_train, top_k=5, shrink=20, similarity='tanimoto')
     slim_bpr = SLIM_BPR_Cython()
     slim_bpr.fit(urm_train, epochs=120)
-    recommenders = [top_pop, item_cbf, user_cf, item_cf, slim_bpr]
+
+    hybrid_rr = HybridRecommender([item_cf, slim_bpr, user_cf, item_cbf], merging_type=MergingTechniques.RR)
+    hybrid_w = HybridRecommender([item_cf, slim_bpr, user_cf, item_cbf], merging_type=MergingTechniques.WEIGHTS, weights=[2.0, 1.75, 1.5, 1.0])
+    hybrid_mr = HybridRecommender([item_cf, slim_bpr, user_cf, item_cbf], merging_type=MergingTechniques.MEDRANK)
+    recommenders = [hybrid_rr, hybrid_w, hybrid_mr]
     '''
 
     rec1 = UserCFKNNRecommender()

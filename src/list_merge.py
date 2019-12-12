@@ -33,13 +33,23 @@ def medrank(lists):
                 x = [np.inf for _ in range(n_lists)]
                 x[l_idx] = idx+1
                 rank[item] = x
+    filtered_keys = list(filter(lambda k: rank[k].count(np.inf) < n_lists / 2, rank))
+    rank = {k: rank[k] for k in filtered_keys}
     for item in rank:
         rank[item] = np.median(rank[item])
-    return sorted(rank.keys(), key=lambda z: rank[z])
+    final_rank = sorted(rank.keys(), key=lambda z: rank[z])
+    if len(final_rank) < 10:
+        for idx in range(list_len):
+            for l in lists:
+                if l[idx] not in final_rank:
+                    final_rank.append(l[idx])
+                    if len(final_rank) >= 10:
+                        return final_rank
+    return final_rank
 
 
 if __name__ == '__main__':
     l1 = ['Ibis', 'Etap', 'Novotel', 'Mercure', 'Hilton', 'Sheraton', 'Crillon']
     l2 = ['Crillon', 'Novotel', 'Sheraton', 'Hilton', 'Ibis', 'Ritz', 'Lutetia']
     l3 = ['Le Roche', 'Lodge In', 'Ritz', 'Lutetia', 'Novotel', 'Sheraton', 'Mercure']
-    print(medrank([l1, l2, l3], at=7))
+    print(medrank([l1, l2, l3]))

@@ -81,18 +81,10 @@ class HybridRecommender:
         return l[:at]
 
 
-def ranged_rand(low=0.0, high=1.0):
-    assert 1.0 >= high >= low >= 0.0
-    x = np.random.rand()
-    if low <= x <= high:
-        return x
-    return ranged_rand(low, high)
-
-
 if __name__ == '__main__':
 
     EXPORT = False
-    urm, icm, target_users = build_all_matrices()
+    urm, icm, ucm, target_users = build_all_matrices()
     if EXPORT:
         urm_train = urm.tocsr()
         urm_test = None
@@ -107,7 +99,7 @@ if __name__ == '__main__':
     cf.fit(urm_train, top_k=5, shrink=20, similarity='tanimoto')
 
     slim = SLIM_BPR(fallback_recommender=tp_rec)
-    slim.fit(urm_train, epochs=120)
+    slim.fit(urm_train, epochs=300)
 
     user_cf = UserCFKNNRecommender(fallback_recommender=tp_rec)
     user_cf.fit(urm_train, top_k=715, shrink=60, normalize=True, similarity='tanimoto')
@@ -121,10 +113,10 @@ if __name__ == '__main__':
     for i in range(100):
         x.append(i)
         weights = [
-            ranged_rand(0.5, 1.0),  # Item-CF
-            ranged_rand(0.3, 1.0),  # User-CF
-            ranged_rand(0.5, 1.0),  # SLIM
-            ranged_rand(0.0, 1.0),  # CBF
+            np.random.uniform(1.0, 2.0),    # Item-CF
+            np.random.uniform(0.5, 1.0),    # User-CF
+            np.random.uniform(8.0, 10.0),   # SLIM
+            np.random.uniform(0.0, 1.0),    # CBF
         ]
         hybrid = HybridRecommender([cf, user_cf, slim, cbf_rec], merging_type=MergingTechniques.WEIGHTS, weights=weights)
         result = evaluate(hybrid, urm_test)['MAP']
