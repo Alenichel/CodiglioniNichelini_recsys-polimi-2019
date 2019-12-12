@@ -25,14 +25,14 @@ def MAP(is_relevant, relevant_items):
     return map_score
 
 
-def evaluate_algorithm(recommender_object, urm_test, at=10, excluded_users=[]):
+def evaluate_algorithm(recommender_object, urm_test, at=10, excluded_users=[], verbose=True):
     cumulative_precision = 0.0                              
     cumulative_recall = 0.0
     cumulative_MAP = 0.0
     num_eval = 0
     urm_test = urm_test.tocsr()
     n_users = urm_test.shape[0]
-    for user_id in trange(n_users, desc='Evaluation'):
+    for user_id in trange(n_users, desc='Evaluation', verbose=verbose):
         if user_id not in excluded_users:
             start_pos = urm_test.indptr[user_id]
             end_pos = urm_test.indptr[user_id+1]
@@ -47,10 +47,11 @@ def evaluate_algorithm(recommender_object, urm_test, at=10, excluded_users=[]):
     cumulative_precision /= num_eval
     cumulative_recall /= num_eval
     cumulative_MAP /= num_eval
-    print('Recommender performance is:')
-    print('    Precision = {:.5f}'.format(cumulative_precision))
-    print('    Recall    = {:.5f}'.format(cumulative_recall))
-    print('    MAP       = {:.5f}'.format(cumulative_MAP))
+    if verbose:
+        print('Recommender performance is:')
+        print('    Precision = {:.5f}'.format(cumulative_precision))
+        print('    Recall    = {:.5f}'.format(cumulative_recall))
+        print('    MAP       = {:.5f}'.format(cumulative_MAP))
     result_dict = {
         "precision": cumulative_precision,                          
         "recall": cumulative_recall,
