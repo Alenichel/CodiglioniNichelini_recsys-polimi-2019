@@ -12,7 +12,7 @@ import numpy as np
 def to_optimize(w_cf, w_ucf, w_slim, w_cbf):
     global cf, user_cf, cbf_rec,  slim
     hybrid = HybridRecommender([cf, user_cf, slim, cbf_rec], merging_type=MergingTechniques.WEIGHTS, weights=[w_cf, w_ucf, w_slim, w_cbf])
-    return evaluate(hybrid, urm_test)['MAP']
+    return evaluate(hybrid, urm_test, cython=True, verbose=False)['MAP']
 
 
 if __name__ == '__main__':
@@ -41,7 +41,7 @@ if __name__ == '__main__':
     cbf_rec = ItemCBFKNNRecommender()
     cbf_rec.fit(urm_train, icm)
 
-    pbounds = {'w_cf': (0, 2), 'w_ucf': (0, 2), 'w_slim': (0, 2), 'w_cbf': (0, 2) }
+    pbounds = {'w_cf': (0, 10), 'w_ucf': (0, 10), 'w_slim': (0, 10), 'w_cbf': (0, 10) }
 
     optimizer = BayesianOptimization(
         f=to_optimize,
@@ -51,8 +51,8 @@ if __name__ == '__main__':
     )
 
     optimizer.maximize(
-        init_points=5,
-        n_iter=30,
+        init_points=10,
+        n_iter=100,
     )
 
     for i, res in enumerate(optimizer.res):
