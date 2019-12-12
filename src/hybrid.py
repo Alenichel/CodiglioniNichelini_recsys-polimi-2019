@@ -118,12 +118,12 @@ if __name__ == '__main__':
     weights_list = []
     maps = []
     x = []
-    for i in range(100):
+    for i in range(125):
         x.append(i)
         weights = [
-            ranged_rand(0.5, 1.0),  # Item-CF
-            ranged_rand(0.3, 1.0),  # User-CF
-            ranged_rand(0.5, 1.0),  # SLIM
+            ranged_rand(0.0, 1.0),  # Item-CF
+            ranged_rand(0.0, 1.0),  # User-CF
+            ranged_rand(0.0, 1.0),  # SLIM
             ranged_rand(0.0, 1.0),  # CBF
         ]
         hybrid = HybridRecommender([cf, user_cf, slim, cbf_rec], merging_type=MergingTechniques.WEIGHTS, weights=weights)
@@ -133,4 +133,4 @@ if __name__ == '__main__':
         plt.show()
         print(weights, result)
         weights_list.append((weights, result))
-    print(sorted(weights_list, key=lambda x: x[1]))
+    pp.pprint(sorted(weights_list, key=lambda x: x[1]))
