@@ -97,7 +97,7 @@ def train_test_split(urm, split_type=SplitType.LOO, split=0.8):
         return __train_test_loo_split_cython(urm)
 
 
-def evaluate(recommender, urm_test, excluded_users=[], cython=False):
+def evaluate(recommender, urm_test, excluded_users=[], cython=False, verbose=True):
     from evaluation import evaluate_algorithm
     if cython:
         print('Ignoring argument excluded_users')
@@ -105,7 +105,7 @@ def evaluate(recommender, urm_test, excluded_users=[], cython=False):
         print('Using Cython evaluation')
         return evaluate_cython(recommender, urm_test)
     else:
-        return evaluate_algorithm(recommender, urm_test, excluded_users=excluded_users)
+        return evaluate_algorithm(recommender, urm_test, excluded_users=excluded_users, verbose=verbose)
 
 
 def export(target_users, recommender):

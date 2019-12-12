@@ -110,7 +110,7 @@ if __name__ == '__main__':
     weights_list = []
     maps = []
     x = []
-    for i in range(100):
+    for i in range(125):
         x.append(i)
         weights = [
             np.random.uniform(1.0, 2.0),    # Item-CF
@@ -125,4 +125,4 @@ if __name__ == '__main__':
         plt.show()
         print(weights, result)
         weights_list.append((weights, result))
-    print(sorted(weights_list, key=lambda x: x[1]))
+    pp.pprint(sorted(weights_list, key=lambda x: x[1]))
