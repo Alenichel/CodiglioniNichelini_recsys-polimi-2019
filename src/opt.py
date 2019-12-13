@@ -54,3 +54,4 @@ if __name__ == '__main__':
 
     for i, res in enumerate(optimizer.res):
         print("Iteration {}: \n\t{}".format(i, res))
+    print(optimizer.max)

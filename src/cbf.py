@@ -96,6 +96,9 @@ def tuner():
 
     optimizer = BayesianOptimization(f=rec_round, pbounds=pbounds)
     optimizer.maximize(init_points=20, n_iter=1000)
+    for i, res in enumerate(optimizer.res):
+        print("Iteration {}: \n\t{}".format(i, res))
+    print(optimizer.max)
 
 
 if __name__ == '__main__':
