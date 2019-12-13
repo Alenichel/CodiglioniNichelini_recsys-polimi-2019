@@ -39,18 +39,18 @@ if __name__ == '__main__':
     cbf_rec = ItemCBFKNNRecommender()
     cbf_rec.fit(urm_train, icm)
 
-    bounds = (0, 5)
+    bounds = (0, 3)
     pbounds = {'w_cf': bounds, 'w_ucf': bounds, 'w_slim': bounds, 'w_cbf': bounds}
 
     optimizer = BayesianOptimization(
         f=to_optimize,
         pbounds=pbounds,
         random_state=1,
-        verbose=3
+        verbose=2
     )
 
     optimizer.maximize(
-        init_points=10,
+        init_points=15,
         n_iter=1000,
     )
 
