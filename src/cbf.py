@@ -92,9 +92,9 @@ def tuner():
         shrink = int(shrink)
         normalize = normalize < 0.5
         similarity = similarities[int(similarity) if similarity < 3 else len(similarities)]
-        cbf = ItemCBFKNNRecommender()
-        cbf.fit(urm_train, icm, top_k=top_k, shrink=shrink, normalize=normalize, similarity=similarity)
-        return evaluate(cbf, urm_test, verbose=True)['MAP']
+        cbf = UserCBFKNNRecommender()
+        cbf.fit(urm_train, ucm, top_k=top_k, shrink=shrink, normalize=normalize, similarity=similarity)
+        return evaluate(cbf, urm_test, cython=True, verbose=False)['MAP']
 
     optimizer = BayesianOptimization(f=rec_round, pbounds=pbounds)
     optimizer.maximize(init_points=10, n_iter=1000)

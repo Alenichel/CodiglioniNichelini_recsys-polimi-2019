@@ -71,7 +71,7 @@ class UserCFKNNRecommender(object):
         return 'User CF'
 
     def fit(self, urm, top_k=50, shrink=100, normalize=True, similarity='cosine'):
-        print('top_k={0}, shrink={1}, tail_boost={2}, fallback={3}'.format(top_k, shrink, self.use_tail_boost, self.fallback_recommender))
+        #print('top_k={0}, shrink={1}, tail_boost={2}, fallback={3}'.format(top_k, shrink, self.use_tail_boost, self.fallback_recommender))
         self.urm = urm.tocsr()
         if self.use_tail_boost:
             self.tb = TailBoost(urm)
@@ -110,15 +110,18 @@ def tuner():
     urm_train, urm_test = train_test_split(urm, SplitType.LOO_CYTHON)
     top_pop = TopPopRecommender()
     top_pop.fit(urm_train)
+    similarities = ['cosine', 'jaccard', 'tanimoto']
+    pbounds = {'top_k': (0, 1000), 'shrink': (0, 1000), 'normalize': (0, 1), 'similarity': (0, len(similarities))}
 
-    def rec_round(top_k, shrink):
+    def rec_round(top_k, shrink, normalize, similarity):
         top_k = int(top_k)
         shrink = int(shrink)
-        cf = ItemCFKNNRecommender(fallback_recommender=top_pop)
-        cf.fit(urm_train, top_k=top_k, shrink=shrink, normalize=True, similarity='tanimoto')
+        normalize = normalize < 0.5
+        similarity = similarities[int(similarity) if similarity < 3 else len(similarities)]
+        cf = UserCFKNNRecommender(fallback_recommender=top_pop)
+        cf.fit(urm_train, top_k=top_k, shrink=shrink, normalize=normalize, similarity=similarity)
         return evaluate(cf, urm_test, cython=True, verbose=False)['MAP']
 
-    pbounds = {'top_k': (0, 1000), 'shrink': (0, 1000)}
     optimizer = BayesianOptimization(f=rec_round, pbounds=pbounds)
     optimizer.maximize(init_points=15, n_iter=1000)
 
