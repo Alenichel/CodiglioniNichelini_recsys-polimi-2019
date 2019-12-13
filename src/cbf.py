@@ -90,7 +90,7 @@ def tuner():
         top_k = int(top_k)
         shrink = int(shrink)
         normalize = normalize < 0.5
-        cbf = UserCBFKNNRecommender()
+        cbf = ItemCBFKNNRecommender()
         cbf.fit(urm_train, ucm, top_k=top_k, shrink=shrink, normalize=normalize, similarity='tanimoto')
         return evaluate(cbf, urm_test, cython=True, verbose=False)['MAP']
 

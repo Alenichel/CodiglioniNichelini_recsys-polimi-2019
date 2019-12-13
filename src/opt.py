@@ -48,8 +48,6 @@ if __name__ == '__main__':
     )
 
     optimizer.maximize(
-        acq='ei',
-        xi=0.1,
         init_points=10,
         n_iter=1000,
     )
