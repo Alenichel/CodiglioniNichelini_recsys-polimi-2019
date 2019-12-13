@@ -121,7 +121,7 @@ def tuner():
         return evaluate(cf, urm_test, cython=True, verbose=False)['MAP']
 
     optimizer = BayesianOptimization(f=rec_round, pbounds=pbounds)
-    optimizer.maximize(init_points=20, n_iter=1000)
+    optimizer.maximize(acq='ei', xi=0.1, init_points=20, n_iter=1000)
 
 
 if __name__ == '__main__':

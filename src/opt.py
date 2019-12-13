@@ -45,12 +45,12 @@ if __name__ == '__main__':
     optimizer = BayesianOptimization(
         f=to_optimize,
         pbounds=pbounds,
-        random_state=1,
-        verbose=2
     )
 
     optimizer.maximize(
-        init_points=20,
+        acq='ei',
+        xi=0.1,
+        init_points=10,
         n_iter=1000,
     )
 
