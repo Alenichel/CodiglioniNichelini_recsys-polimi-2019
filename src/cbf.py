@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import numpy as np
+from bayes_opt import BayesianOptimization
 from Base.Similarity.Compute_Similarity_Python import Compute_Similarity_Python
 from run_utils import build_all_matrices, train_test_split, SplitType, export, evaluate
 
@@ -80,7 +81,29 @@ class UserCBFKNNRecommender:
         return scores
 
 
+def tuner():
+    urm, icm, ucm, _ = build_all_matrices()
+    urm_train, urm_test = train_test_split(urm, SplitType.LOO_CYTHON)
+    similarities = ['cosine', 'jaccard', 'tanimoto']
+    pbounds = {'top_k': (0, 1000), 'shrink': (0, 1000), 'normalize': (0, 1), 'similarity': (0, len(similarities))}
+
+    def rec_round(top_k, shrink, normalize, similarity):
+        top_k = int(top_k)
+        shrink = int(shrink)
+        normalize = normalize < 0.5
+        similarity = similarities[int(similarity) if similarity < 3 else len(similarities)]
+        cbf = ItemCBFKNNRecommender()
+        cbf.fit(urm_train, icm, top_k=top_k, shrink=shrink, normalize=normalize, similarity=similarity)
+        return evaluate(cbf, urm_test, verbose=True)['MAP']
+
+    optimizer = BayesianOptimization(f=rec_round, pbounds=pbounds)
+    optimizer.maximize(init_points=10, n_iter=1000)
+
+
 if __name__ == '__main__':
+    tuner()
+    exit()
+
     EXPORT = False
     urm, icm, ucm, target_users = build_all_matrices()
     if EXPORT:

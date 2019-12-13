@@ -50,7 +50,7 @@ if __name__ == '__main__':
     )
 
     optimizer.maximize(
-        init_points=15,
+        init_points=10,
         n_iter=1000,
     )
 
