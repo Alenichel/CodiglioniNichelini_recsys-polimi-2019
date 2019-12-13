@@ -52,7 +52,7 @@ class UserCBFKNNRecommender:
         self.w_sparse = None
 
     def __str__(self):
-        return 'Item CBF'
+        return 'User CBF'
 
     def fit(self, urm, ucm, top_k=50, shrink=100, normalize=True, similarity='tanimoto'):
         self.urm = urm
@@ -84,18 +84,18 @@ class UserCBFKNNRecommender:
 def tuner():
     urm, icm, ucm, _ = build_all_matrices()
     urm_train, urm_test = train_test_split(urm, SplitType.LOO_CYTHON)
-    pbounds = {'top_k': (0, 1000), 'shrink': (0, 1000), 'normalize': (0, 1)}
+    pbounds = {'top_k': (0, 500), 'shrink': (0, 500), 'normalize': (0, 1)}
 
     def rec_round(top_k, shrink, normalize):
         top_k = int(top_k)
         shrink = int(shrink)
         normalize = normalize < 0.5
         cbf = ItemCBFKNNRecommender()
-        cbf.fit(urm_train, ucm, top_k=top_k, shrink=shrink, normalize=normalize, similarity='tanimoto')
+        cbf.fit(urm_train, icm, top_k=top_k, shrink=shrink, normalize=normalize, similarity='tanimoto')
         return evaluate(cbf, urm_test, cython=True, verbose=False)['MAP']
 
     optimizer = BayesianOptimization(f=rec_round, pbounds=pbounds)
-    optimizer.maximize(init_points=20, n_iter=1000)
+    optimizer.maximize(init_points=10, n_iter=500)
     for i, res in enumerate(optimizer.res):
         print("Iteration {}: \n\t{}".format(i, res))
     print(optimizer.max)

@@ -110,7 +110,7 @@ def tuner():
     urm_train, urm_test = train_test_split(urm, SplitType.LOO_CYTHON)
     top_pop = TopPopRecommender()
     top_pop.fit(urm_train)
-    pbounds = {'top_k': (0, 1000), 'shrink': (0, 1000), 'normalize': (0, 1)}
+    pbounds = {'top_k': (0, 500), 'shrink': (0, 500), 'normalize': (0, 1)}
 
     def rec_round(top_k, shrink, normalize):
         top_k = int(top_k)
@@ -121,7 +121,7 @@ def tuner():
         return evaluate(cf, urm_test, cython=True, verbose=False)['MAP']
 
     optimizer = BayesianOptimization(f=rec_round, pbounds=pbounds)
-    optimizer.maximize(init_points=20, n_iter=1000)
+    optimizer.maximize(init_points=10, n_iter=500)
     for i, res in enumerate(optimizer.res):
         print("Iteration {}: \n\t{}".format(i, res))
     print(optimizer.max)

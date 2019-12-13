@@ -49,7 +49,7 @@ if __name__ == '__main__':
 
     optimizer.maximize(
         init_points=10,
-        n_iter=1000,
+        n_iter=500,
     )
 
     for i, res in enumerate(optimizer.res):
