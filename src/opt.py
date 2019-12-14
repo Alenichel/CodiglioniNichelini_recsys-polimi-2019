@@ -11,11 +11,11 @@ from cbf import ItemCBFKNNRecommender, UserCBFKNNRecommender
 from run_utils import evaluate, build_all_matrices, train_test_split, SplitType
 
 
-def to_optimize(w_cf, w_ucf, w_slim, w_slim_el, w_cbf):
-    global item_cf, user_cf, slim_bpr, slim_elasticnet, item_cbf
-    hybrid = HybridRecommender([item_cf, user_cf, slim_bpr, slim_elasticnet, item_cbf],
+def to_optimize(w_icf, w_ucf, w_slim_bpr, w_slim_el):
+    global item_cf, user_cf, slim_bpr, slim_elasticnet
+    hybrid = HybridRecommender([item_cf, user_cf, slim_bpr, slim_elasticnet],
                                merging_type=MergingTechniques.WEIGHTS,
-                               weights=[w_cf, w_ucf, w_slim, w_slim_el, w_cbf])
+                               weights=[w_icf, w_ucf, w_slim_bpr, w_slim_el])
     return evaluate(hybrid, urm_test, cython=True, verbose=False)['MAP']
 
 
@@ -42,20 +42,24 @@ if __name__ == '__main__':
     item_cf = ItemCFKNNRecommender(fallback_recommender=hybrid_fb)
     item_cf.fit(urm_train, top_k=5, shrink=20, similarity='tanimoto')
 
-    slim_bpr = SLIM_BPR(fallback_recommender=hybrid_fb)
-    slim_bpr.fit(urm_train, epochs=300)
-
-    slim_elasticnet = SLIMElasticNetRecommender()
-    slim_elasticnet.fit(urm_train)
-
     user_cf = UserCFKNNRecommender(fallback_recommender=hybrid_fb)
     user_cf.fit(urm_train, top_k=715, shrink=60, normalize=True, similarity='tanimoto')
 
-    item_cbf = ItemCBFKNNRecommender()
-    item_cbf.fit(urm_train, icm, 417, 0, normalize=True)
+    slim_bpr = SLIM_BPR(fallback_recommender=hybrid_fb)
+    slim_bpr.fit(urm_train, epochs=300)
 
-    bounds = (0, 1)
-    pbounds = {'w_cf': bounds, 'w_ucf': bounds, 'w_slim': bounds, 'w_slim_el': bounds, 'w_cbf': bounds}
+    slim_elasticnet = SLIMElasticNetRecommender(fallback_recommender=hybrid_fb)
+    slim_elasticnet.fit(urm_train)
+
+    #item_cbf = ItemCBFKNNRecommender()
+    #item_cbf.fit(urm_train, icm, 417, 0, normalize=True)
+
+    pbounds = {
+        'w_icf': (0.001, 3),
+        'w_ucf': (0.001, 3),
+        'w_slim_bpr': (0.001, 3),
+        'w_slim_el': (0.001, 3)
+    }
 
     optimizer = BayesianOptimization(
         f=to_optimize,
@@ -63,7 +67,7 @@ if __name__ == '__main__':
     )
 
     optimizer.maximize(
-        init_points=10,
+        init_points=30,
         n_iter=300,
     )
 

@@ -124,7 +124,7 @@ def tuner():
         return evaluate(cf, urm_test, cython=True, verbose=False)['MAP']
 
     optimizer = BayesianOptimization(f=rec_round, pbounds=pbounds)
-    optimizer.maximize(init_points=10, n_iter=500)
+    optimizer.maximize(init_points=30, n_iter=300)
     for i, res in enumerate(optimizer.res):
         print("Iteration {}: \n\t{}".format(i, res))
     print(optimizer.max)
@@ -145,7 +145,7 @@ if __name__ == '__main__':
     top_pop = TopPopRecommender()
     top_pop.fit(urm_train)
     cf = ItemCFKNNRecommender(fallback_recommender=top_pop)
-    cf.fit(urm_train, top_k=5, shrink=20, similarity='tanimoto')
+    cf.fit(urm_train, top_k=690, shrink=66, normalize=False, similarity='tanimoto')
     if EXPORT:
         export(target_users, cf)
     else:
