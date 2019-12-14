@@ -11,10 +11,11 @@ from run_utils import build_all_matrices, train_test_split, SplitType, export, e
 
 class SLIMElasticNetRecommender:
 
-    def __init__(self):
+    def __init__(self, fallback_recommender=None):
         self.urm_train = None
         self.model = None
         self.W_sparse = None
+        self.fallback_recommender = fallback_recommender
 
     def __str__(self):
         return 'SLIM ElasticNet'
@@ -105,10 +106,13 @@ class SLIMElasticNetRecommender:
         return scores
 
     def recommend(self, user_id, at=None, exclude_seen=True):
-        #user_profile = self.urm_train[user_id]
-        scores = self.get_scores(user_id, exclude_seen)
-        ranking = scores.argsort()[::-1]
-        return ranking[:at]
+        user_profile = self.urm_train[user_id]
+        if user_profile.nnz == 0 and self.fallback_recommender:
+            return self.fallback_recommender.recommend(user_id, at, exclude_seen)
+        else:
+            scores = self.get_scores(user_id, exclude_seen)
+            ranking = scores.argsort()[::-1]
+            return ranking[:at]
 
     def filter_seen(self, user_id, scores):
 
