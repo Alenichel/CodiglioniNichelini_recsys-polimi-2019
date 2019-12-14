@@ -32,7 +32,7 @@ def evaluate_algorithm(recommender_object, urm_test, at=10, excluded_users=[], v
     num_eval = 0
     urm_test = urm_test.tocsr()
     n_users = urm_test.shape[0]
-    for user_id in range(n_users, desc='Evaluation') if verbose is True else range(n_users):
+    for user_id in trange(n_users, desc='Evaluation') if verbose is True else range(n_users):
         if user_id not in excluded_users:
             start_pos = urm_test.indptr[user_id]
             end_pos = urm_test.indptr[user_id+1]
