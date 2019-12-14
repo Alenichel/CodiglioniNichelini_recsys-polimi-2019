@@ -24,7 +24,7 @@ class SLIMElasticNetRecommender:
         else:
             print("SLIM_ElasticNet: l1_penalty+l2_penalty cannot be equal to zero, setting the ratio l1/(l1+l2) to 1.0")
             l1_ratio = 1.0
-        self.model = ElasticNet(alpha=1.0,
+        self.model = ElasticNet(alpha=1e-4,
                                 l1_ratio=l1_ratio,
                                 positive=positive_only,
                                 fit_intercept=False,
@@ -42,7 +42,7 @@ class SLIMElasticNetRecommender:
         values = np.zeros(dataBlock, dtype=np.float32)
         numCells = 0
         # fit each item's factors sequentially (not in parallel)
-        for currentItem in trange(n_items):
+        for currentItem in trange(n_items, desc='Fitting'):
             # get the target column
             y = urm_train[:, currentItem].toarray()
             if y.sum() == 0:
@@ -121,12 +121,12 @@ class SLIMElasticNetRecommender:
 
 if __name__ == '__main__':
     EXPORT = False
-    urm, icm, target_users = build_all_matrices()
+    urm, icm, ucm, target_users = build_all_matrices()
     if EXPORT:
         urm_train = urm.tocsr()
         urm_test = None
     else:
-        urm_train, urm_test = train_test_split(urm, SplitType.LOO_CYTHON)
+        urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
     rec = SLIMElasticNetRecommender()
     rec.fit(urm_train)
     if EXPORT:

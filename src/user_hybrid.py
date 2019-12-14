@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from run_utils import build_all_matrices, train_test_split, SplitType, evaluate
 from basic_recommenders import TopPopRecommender, RandomRecommender
-from cbf import ItemCBFKNNRecommender
+from cbf import ItemCBFKNNRecommender, UserCBFKNNRecommender
 from cf import ItemCFKNNRecommender, UserCFKNNRecommender
 from hybrid import HybridRecommender, MergingTechniques
 from cython_modules.SLIM_BPR.SLIM_BPR_CYTHON import SLIM_BPR as SLIM_BPR_Cython
@@ -75,7 +75,7 @@ class UserSegmenter:
 
 if __name__ == '__main__':
     EXPORT = False
-    urm, icm, target_users = build_all_matrices()
+    urm, icm, ucm, target_users = build_all_matrices()
     if EXPORT:
         urm_train = urm.tocsr()
         urm_test = None
@@ -85,28 +85,14 @@ if __name__ == '__main__':
     top_pop = TopPopRecommender()
     top_pop.fit(urm_train)
     item_cbf = ItemCBFKNNRecommender()
-    item_cbf.fit(urm_train, icm)
-    user_cf = UserCFKNNRecommender()
-    user_cf.fit(urm_train, top_k=715, shrink=60, similarity='tanimoto')
+    item_cbf.fit(urm_train, icm, top_k=417, shrink=0.3, normalize=True)
+    user_cbf = UserCBFKNNRecommender()
+    user_cbf.fit(urm_train, ucm, 500, shrink=0.73, normalize=False)
     item_cf = ItemCFKNNRecommender()
-    item_cf.fit(urm_train, top_k=5, shrink=20, similarity='tanimoto')
-    slim_bpr = SLIM_BPR_Cython()
-    slim_bpr.fit(urm_train, epochs=120)
-
-    hybrid_rr = HybridRecommender([item_cf, slim_bpr, user_cf, item_cbf], merging_type=MergingTechniques.RR)
-    hybrid_w = HybridRecommender([item_cf, slim_bpr, user_cf, item_cbf], merging_type=MergingTechniques.WEIGHTS, weights=[2.0, 1.75, 1.5, 1.0])
-    hybrid_mr = HybridRecommender([item_cf, slim_bpr, user_cf, item_cbf], merging_type=MergingTechniques.MEDRANK)
-    recommenders = [hybrid_rr, hybrid_w, hybrid_mr]
-    '''
-
-    rec1 = UserCFKNNRecommender()
-    rec1.fit(urm_train, top_k=551, shrink=702, similarity='cosine')
-    rec2 = UserCFKNNRecommender()
-    rec2.fit(urm_train, top_k=50, shrink=100, similarity='jaccard')
-    rec3 = ItemCFKNNRecommender()
-    rec3.fit(urm_train, top_k=5, shrink=20, similarity='tanimoto')
-    recommenders = [rec1, rec2, rec3]
-    '''
+    item_cf.fit(urm_train, top_k=45, shrink=40, normalize=True)
+    user_cf = UserCFKNNRecommender()
+    user_cf.fit(urm_train, top_k=500, shrink=2.1, normalize=False)
+    recommenders = [top_pop, item_cbf, user_cbf, item_cf, user_cf]
 
     user_segmenter = UserSegmenter(recommenders, urm_train, urm_test)
     user_segmenter.analyze(group_size_percent=0.05)

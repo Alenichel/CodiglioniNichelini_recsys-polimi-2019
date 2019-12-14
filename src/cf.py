@@ -22,7 +22,7 @@ class ItemCFKNNRecommender(object):
     def __str__(self):
         return 'Item CF'
 
-    def fit(self, urm, top_k=50, shrink=100, normalize=True, similarity='cosine'):
+    def fit(self, urm, top_k=50, shrink=100, normalize=True, similarity='tanimoto'):
         #print('top_k={0}, shrink={1}, tail_boost={2}, fallback={3}'.format(top_k, shrink, self.use_tail_boost, self.fallback_recommender))
         self.urm = urm.tocsr()
         if self.use_tail_boost:
@@ -70,7 +70,7 @@ class UserCFKNNRecommender(object):
     def __str__(self):
         return 'User CF'
 
-    def fit(self, urm, top_k=50, shrink=100, normalize=True, similarity='cosine'):
+    def fit(self, urm, top_k=50, shrink=100, normalize=True, similarity='tanimoto'):
         #print('top_k={0}, shrink={1}, tail_boost={2}, fallback={3}'.format(top_k, shrink, self.use_tail_boost, self.fallback_recommender))
         self.urm = urm.tocsr()
         if self.use_tail_boost:
