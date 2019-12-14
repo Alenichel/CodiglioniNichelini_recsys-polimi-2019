@@ -3,11 +3,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from run_utils import build_all_matrices, train_test_split, SplitType, evaluate
-from basic_recommenders import TopPopRecommender, RandomRecommender
+from basic_recommenders import TopPopRecommender
 from cbf import ItemCBFKNNRecommender, UserCBFKNNRecommender
 from cf import ItemCFKNNRecommender, UserCFKNNRecommender
 from hybrid import HybridRecommender, MergingTechniques
 from cython_modules.SLIM_BPR.SLIM_BPR_CYTHON import SLIM_BPR as SLIM_BPR_Cython
+from slim_elasticnet import SLIMElasticNetRecommender
 
 
 class UserSegmenter:
@@ -74,13 +75,14 @@ class UserSegmenter:
 
 
 if __name__ == '__main__':
+    np.random.seed(42)
     EXPORT = False
     urm, icm, ucm, target_users = build_all_matrices()
     if EXPORT:
         urm_train = urm.tocsr()
         urm_test = None
     else:
-        urm_train, urm_test = train_test_split(urm, SplitType.LOO_CYTHON)
+        urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
 
     top_pop = TopPopRecommender()
     top_pop.fit(urm_train)
@@ -92,7 +94,11 @@ if __name__ == '__main__':
     item_cf.fit(urm_train, top_k=45, shrink=40, normalize=True)
     user_cf = UserCFKNNRecommender()
     user_cf.fit(urm_train, top_k=500, shrink=2.1, normalize=False)
-    recommenders = [top_pop, item_cbf, user_cbf, item_cf, user_cf]
+    slim_bpr = SLIM_BPR_Cython()
+    slim_bpr.fit(urm_train)
+    slim_elasticnet = SLIMElasticNetRecommender()
+    slim_elasticnet.fit(urm_train)
+    recommenders = [top_pop, item_cbf, user_cbf, item_cf, user_cf, slim_bpr, slim_elasticnet]
 
     user_segmenter = UserSegmenter(recommenders, urm_train, urm_test)
     user_segmenter.analyze(group_size_percent=0.05)
