@@ -119,7 +119,7 @@ def tuner():
         shrink = int(shrink)
         normalize = normalize < 0.5
         similarity = similarities[0] if similarity < 0.5 else similarities[1]
-        cf = UserCFKNNRecommender(fallback_recommender=top_pop)
+        cf = ItemCFKNNRecommender(fallback_recommender=top_pop)
         cf.fit(urm_train, top_k=top_k, shrink=shrink, normalize=normalize, similarity=similarity)
         return evaluate(cf, urm_test, cython=True, verbose=False)['MAP']
 
