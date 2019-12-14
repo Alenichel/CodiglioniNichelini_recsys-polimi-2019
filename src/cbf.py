@@ -83,7 +83,7 @@ class UserCBFKNNRecommender:
 
 def tuner():
     urm, icm, ucm, _ = build_all_matrices()
-    urm_train, urm_test = train_test_split(urm, SplitType.LOO_CYTHON)
+    urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
     pbounds = {'top_k': (0, 500), 'shrink': (0, 500), 'normalize': (0, 1)}
 
     def rec_round(top_k, shrink, normalize):
@@ -111,9 +111,9 @@ if __name__ == '__main__':
         urm_train = urm.tocsr()
         urm_test = None
     else:
-        urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
+        urm_train, urm_test = train_test_split(urm, SplitType.LOO_CYTHON)
     cbf_rec = ItemCBFKNNRecommender()
-    cbf_rec.fit(urm_train, ucm)
+    cbf_rec.fit(urm_train, icm)
     if EXPORT:
         export(target_users, cbf_rec)
     else:

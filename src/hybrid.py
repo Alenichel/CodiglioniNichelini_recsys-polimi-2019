@@ -2,16 +2,12 @@
 
 import numpy as np
 from run_utils import build_all_matrices, train_test_split, evaluate, export, SplitType
-from evaluation import multiple_evaluation
 from list_merge import round_robin_list_merger, frequency_list_merger, medrank
 from cf import ItemCFKNNRecommender, UserCFKNNRecommender
 from cbf import ItemCBFKNNRecommender
-#from slim_bpr import SLIM_BPR
 from cython_modules.SLIM_BPR.SLIM_BPR_CYTHON import SLIM_BPR
 from basic_recommenders import TopPopRecommender
 from enum import Enum
-import pprint as pp
-import matplotlib.pyplot as plt
 
 
 class MergingTechniques(Enum):
@@ -82,21 +78,20 @@ class HybridRecommender:
 
 
 if __name__ == '__main__':
-
     EXPORT = False
     urm, icm, ucm, target_users = build_all_matrices()
     if EXPORT:
         urm_train = urm.tocsr()
         urm_test = None
     else:
-        urm_train, urm_test = train_test_split(urm, SplitType.LOO_CYTHON)
+        urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
     n_users, n_items = urm_train.shape
 
     tp_rec = TopPopRecommender()
     tp_rec.fit(urm_train)
 
-    cf = ItemCFKNNRecommender(fallback_recommender=tp_rec)
-    cf.fit(urm_train, top_k=5, shrink=20, similarity='tanimoto')
+    item_cf = ItemCFKNNRecommender(fallback_recommender=tp_rec)
+    item_cf.fit(urm_train, top_k=5, shrink=20, similarity='tanimoto')
 
     slim = SLIM_BPR(fallback_recommender=tp_rec)
     slim.fit(urm_train, epochs=300)
@@ -104,25 +99,12 @@ if __name__ == '__main__':
     user_cf = UserCFKNNRecommender(fallback_recommender=tp_rec)
     user_cf.fit(urm_train, top_k=715, shrink=60, normalize=True, similarity='tanimoto')
 
-    cbf_rec = ItemCBFKNNRecommender()
-    cbf_rec.fit(urm_train, icm)
+    cbf = ItemCBFKNNRecommender()
+    cbf.fit(urm_train, icm)
 
-    weights_list = []
-    maps = []
-    x = []
-    for i in range(125):
-        x.append(i)
-        weights = [
-            np.random.uniform(1.0, 2.0),    # Item-CF
-            np.random.uniform(0.5, 1.0),    # User-CF
-            np.random.uniform(8.0, 10.0),   # SLIM
-            np.random.uniform(0.0, 1.0),    # CBF
-        ]
-        hybrid = HybridRecommender([cf, user_cf, slim, cbf_rec], merging_type=MergingTechniques.WEIGHTS, weights=weights)
-        result = evaluate(hybrid, urm_test)['MAP']
-        maps.append(result)
-        plt.scatter(x, maps)
-        plt.show()
-        print(weights, result)
-        weights_list.append((weights, result))
-    pp.pprint(sorted(weights_list, key=lambda x: x[1]))
+    hybrid = HybridRecommender([cbf, item_cf, slim, user_cf], merging_type=MergingTechniques.WEIGHTS, weights=[3.048, 4.977, 4.956, 0.025])
+
+    if EXPORT:
+        export(target_users, hybrid)
+    else:
+        evaluate(hybrid, urm_test, cython=True)
