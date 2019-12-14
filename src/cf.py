@@ -106,18 +106,21 @@ class UserCFKNNRecommender(object):
 
 
 def tuner():
+    np.random.seed(42)
     urm, icm, ucm, target_users = build_all_matrices()
     urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
     top_pop = TopPopRecommender()
     top_pop.fit(urm_train)
-    pbounds = {'top_k': (0, 1000), 'shrink': (0, 500), 'normalize': (0, 1)}
+    similarities = ['jaccard', 'tanimoto']
+    pbounds = {'top_k': (0, 1000), 'shrink': (0, 1000), 'normalize': (0, 1), 'similarity': (0, 1)}
 
-    def rec_round(top_k, shrink, normalize):
+    def rec_round(top_k, shrink, normalize, similarity):
         top_k = int(top_k)
         shrink = int(shrink)
         normalize = normalize < 0.5
+        similarity = similarities[0] if similarity < 0.5 else similarities[1]
         cf = UserCFKNNRecommender(fallback_recommender=top_pop)
-        cf.fit(urm_train, top_k=top_k, shrink=shrink, normalize=normalize, similarity='tanimoto')
+        cf.fit(urm_train, top_k=top_k, shrink=shrink, normalize=normalize, similarity=similarity)
         return evaluate(cf, urm_test, cython=True, verbose=False)['MAP']
 
     optimizer = BayesianOptimization(f=rec_round, pbounds=pbounds)
@@ -132,6 +135,7 @@ if __name__ == '__main__':
     exit()
 
     EXPORT = False
+    np.random.seed(42)
     urm, icm, ucm, target_users = build_all_matrices()
     if EXPORT:
         urm_train = urm.tocsr()

@@ -38,7 +38,7 @@ class HybridRecommender:
             raise ValueError('merging_type is not an instance of MergingTechnique')
 
     def get_scores(self, user_id, exclude_seen=True):
-        assert self.weights is not None
+        assert self.weights is not None and len(self.weights) == len(self.recommenders)
         scores = [recommender.get_scores(user_id, exclude_seen) for recommender in self.recommenders]
         scores = [scores[i] * self.weights[i] for i in range(self.n_recommenders)]
         scores = np.array(scores)
@@ -46,7 +46,7 @@ class HybridRecommender:
         return scores
 
     def recommend_weights(self, user_id, at=10, exclude_seen=True):
-        assert self.weights is not None
+        assert self.weights is not None and len(self.weights) == len(self.recommenders)
         scores = self.get_scores(user_id, exclude_seen)
         ranking = scores.argsort()[::-1]
         return ranking[:at]
