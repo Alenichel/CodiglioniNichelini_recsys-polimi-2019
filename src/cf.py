@@ -107,16 +107,16 @@ class UserCFKNNRecommender(object):
 
 def tuner():
     urm, icm, ucm, target_users = build_all_matrices()
-    urm_train, urm_test = train_test_split(urm, SplitType.LOO_CYTHON)
+    urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
     top_pop = TopPopRecommender()
     top_pop.fit(urm_train)
-    pbounds = {'top_k': (0, 500), 'shrink': (0, 500), 'normalize': (0, 1)}
+    pbounds = {'top_k': (0, 1000), 'shrink': (0, 500), 'normalize': (0, 1)}
 
     def rec_round(top_k, shrink, normalize):
         top_k = int(top_k)
         shrink = int(shrink)
         normalize = normalize < 0.5
-        cf = ItemCFKNNRecommender(fallback_recommender=top_pop)
+        cf = UserCFKNNRecommender(fallback_recommender=top_pop)
         cf.fit(urm_train, top_k=top_k, shrink=shrink, normalize=normalize, similarity='tanimoto')
         return evaluate(cf, urm_test, cython=True, verbose=False)['MAP']
 
@@ -137,7 +137,7 @@ if __name__ == '__main__':
         urm_train = urm.tocsr()
         urm_test = None
     else:
-        urm_train, urm_test = train_test_split(urm, SplitType.LOO_CYTHON)
+        urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
     top_pop = TopPopRecommender()
     top_pop.fit(urm_train)
     cf = ItemCFKNNRecommender(fallback_recommender=top_pop)

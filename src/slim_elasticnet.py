@@ -31,7 +31,7 @@ class SLIMElasticNetRecommender:
                                 copy_X=False,
                                 precompute=True,
                                 selection='random',
-                                max_iter=1000,
+                                max_iter=100,
                                 tol=1e-4)
         urm_train = sps.csc_matrix(self.urm_train)
         n_items = urm_train.shape[1]
