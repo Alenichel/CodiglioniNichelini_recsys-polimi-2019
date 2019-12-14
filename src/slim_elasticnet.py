@@ -94,17 +94,17 @@ class SLIMElasticNetRecommender:
         self.W_sparse = sps.csr_matrix((values[:numCells], (rows[:numCells], cols[:numCells])),
                                        shape=(n_items, n_items), dtype=np.float32)
 
-    def recommend(self, user_id, at=None, exclude_seen=True):
-        # compute the scores using the dot product
+    def get_scores(self, user_id, exclude_seen=True):
         user_profile = self.urm_train[user_id]
         scores = user_profile.dot(self.W_sparse).toarray().ravel()
-
         if exclude_seen:
             scores = self.filter_seen(user_id, scores)
+        return scores
 
-        # rank items
+    def recommend(self, user_id, at=None, exclude_seen=True):
+        #user_profile = self.urm_train[user_id]
+        scores = self.get_scores(user_id, exclude_seen)
         ranking = scores.argsort()[::-1]
-
         return ranking[:at]
 
     def filter_seen(self, user_id, scores):
