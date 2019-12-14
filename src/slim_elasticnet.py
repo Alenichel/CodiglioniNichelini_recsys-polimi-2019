@@ -16,6 +16,9 @@ class SLIMElasticNetRecommender:
         self.model = None
         self.W_sparse = None
 
+    def __str__(self):
+        return 'SLIM ElasticNet'
+
     @ignore_warnings(category=ConvergenceWarning)
     def fit(self, urm_train, l1_penalty=0.01, l2_penalty=0.01, positive_only=True, topK=100):
         self.urm_train = urm_train
