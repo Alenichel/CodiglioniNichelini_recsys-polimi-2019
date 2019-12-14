@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import numpy as np
+from bayes_opt import BayesianOptimization
 from Base.Similarity.Compute_Similarity_Python import Compute_Similarity_Python
 from run_utils import build_all_matrices, train_test_split, SplitType, export, evaluate
 
@@ -51,7 +52,7 @@ class UserCBFKNNRecommender:
         self.w_sparse = None
 
     def __str__(self):
-        return 'Item CBF'
+        return 'User CBF'
 
     def fit(self, urm, ucm, top_k=50, shrink=100, normalize=True, similarity='tanimoto'):
         self.urm = urm
@@ -80,7 +81,30 @@ class UserCBFKNNRecommender:
         return scores
 
 
+def tuner():
+    urm, icm, ucm, _ = build_all_matrices()
+    urm_train, urm_test = train_test_split(urm, SplitType.LOO_CYTHON)
+    pbounds = {'top_k': (0, 500), 'shrink': (0, 500), 'normalize': (0, 1)}
+
+    def rec_round(top_k, shrink, normalize):
+        top_k = int(top_k)
+        shrink = int(shrink)
+        normalize = normalize < 0.5
+        cbf = ItemCBFKNNRecommender()
+        cbf.fit(urm_train, icm, top_k=top_k, shrink=shrink, normalize=normalize, similarity='tanimoto')
+        return evaluate(cbf, urm_test, cython=True, verbose=False)['MAP']
+
+    optimizer = BayesianOptimization(f=rec_round, pbounds=pbounds)
+    optimizer.maximize(init_points=10, n_iter=500)
+    for i, res in enumerate(optimizer.res):
+        print("Iteration {}: \n\t{}".format(i, res))
+    print(optimizer.max)
+
+
 if __name__ == '__main__':
+    tuner()
+    exit()
+
     EXPORT = False
     urm, icm, ucm, target_users = build_all_matrices()
     if EXPORT:
@@ -88,7 +112,7 @@ if __name__ == '__main__':
         urm_test = None
     else:
         urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
-    cbf_rec = UserCBFKNNRecommender()
+    cbf_rec = ItemCBFKNNRecommender()
     cbf_rec.fit(urm_train, ucm)
     if EXPORT:
         export(target_users, cbf_rec)

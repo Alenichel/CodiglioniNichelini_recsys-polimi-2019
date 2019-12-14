@@ -7,6 +7,7 @@ from Base.Similarity.Compute_Similarity_Python import Compute_Similarity_Python
 from basic_recommenders import TopPopRecommender
 from evaluation import multiple_evaluation
 from pprint import pprint as pp
+from bayes_opt import BayesianOptimization
 
 
 class ItemCFKNNRecommender(object):
@@ -22,7 +23,7 @@ class ItemCFKNNRecommender(object):
         return 'Item CF'
 
     def fit(self, urm, top_k=50, shrink=100, normalize=True, similarity='cosine'):
-        print('top_k={0}, shrink={1}, tail_boost={2}, fallback={3}'.format(top_k, shrink, self.use_tail_boost, self.fallback_recommender))
+        #print('top_k={0}, shrink={1}, tail_boost={2}, fallback={3}'.format(top_k, shrink, self.use_tail_boost, self.fallback_recommender))
         self.urm = urm.tocsr()
         if self.use_tail_boost:
             self.tb = TailBoost(urm)
@@ -70,7 +71,7 @@ class UserCFKNNRecommender(object):
         return 'User CF'
 
     def fit(self, urm, top_k=50, shrink=100, normalize=True, similarity='cosine'):
-        print('top_k={0}, shrink={1}, tail_boost={2}, fallback={3}'.format(top_k, shrink, self.use_tail_boost, self.fallback_recommender))
+        #print('top_k={0}, shrink={1}, tail_boost={2}, fallback={3}'.format(top_k, shrink, self.use_tail_boost, self.fallback_recommender))
         self.urm = urm.tocsr()
         if self.use_tail_boost:
             self.tb = TailBoost(urm)
@@ -104,7 +105,32 @@ class UserCFKNNRecommender(object):
         return scores
 
 
+def tuner():
+    urm, icm, ucm, target_users = build_all_matrices()
+    urm_train, urm_test = train_test_split(urm, SplitType.LOO_CYTHON)
+    top_pop = TopPopRecommender()
+    top_pop.fit(urm_train)
+    pbounds = {'top_k': (0, 500), 'shrink': (0, 500), 'normalize': (0, 1)}
+
+    def rec_round(top_k, shrink, normalize):
+        top_k = int(top_k)
+        shrink = int(shrink)
+        normalize = normalize < 0.5
+        cf = ItemCFKNNRecommender(fallback_recommender=top_pop)
+        cf.fit(urm_train, top_k=top_k, shrink=shrink, normalize=normalize, similarity='tanimoto')
+        return evaluate(cf, urm_test, cython=True, verbose=False)['MAP']
+
+    optimizer = BayesianOptimization(f=rec_round, pbounds=pbounds)
+    optimizer.maximize(init_points=10, n_iter=500)
+    for i, res in enumerate(optimizer.res):
+        print("Iteration {}: \n\t{}".format(i, res))
+    print(optimizer.max)
+
+
 if __name__ == '__main__':
+    tuner()
+    exit()
+
     EXPORT = False
     urm, icm, ucm, target_users = build_all_matrices()
     if EXPORT:

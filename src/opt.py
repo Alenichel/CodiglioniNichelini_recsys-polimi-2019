@@ -6,8 +6,6 @@ from basic_recommenders import TopPopRecommender
 from cbf import ItemCBFKNNRecommender
 from run_utils import evaluate, build_all_matrices, train_test_split, SplitType
 
-import numpy as np
-
 
 def to_optimize(w_cf, w_ucf, w_slim, w_cbf):
     global cf, user_cf, cbf_rec,  slim
@@ -41,19 +39,19 @@ if __name__ == '__main__':
     cbf_rec = ItemCBFKNNRecommender()
     cbf_rec.fit(urm_train, icm)
 
-    pbounds = {'w_cf': (0, 10), 'w_ucf': (0, 10), 'w_slim': (0, 10), 'w_cbf': (0, 10) }
+    bounds = (0, 1)
+    pbounds = {'w_cf': bounds, 'w_ucf': bounds, 'w_slim': bounds, 'w_cbf': bounds}
 
     optimizer = BayesianOptimization(
         f=to_optimize,
         pbounds=pbounds,
-        random_state=1,
-        verbose=3
     )
 
     optimizer.maximize(
         init_points=10,
-        n_iter=100,
+        n_iter=500,
     )
 
     for i, res in enumerate(optimizer.res):
         print("Iteration {}: \n\t{}".format(i, res))
+    print(optimizer.max)

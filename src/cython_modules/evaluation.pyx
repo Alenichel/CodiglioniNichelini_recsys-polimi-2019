@@ -34,7 +34,7 @@ def evaluate_cython(recommender_object, urm_test, int at=10, verbose=True):
     cdef np.ndarray relevant_items
     cdef np.ndarray recommended_items
     cdef np.ndarray is_relevant
-    for user_id in range(n_users, desc='Evaluation') if verbose is True else range(n_users):
+    for user_id in trange(n_users, desc='Evaluation') if verbose else range(n_users):
         start_pos = urm_test.indptr[user_id]
         end_pos = urm_test.indptr[user_id+1]
         if end_pos - start_pos > 0:
