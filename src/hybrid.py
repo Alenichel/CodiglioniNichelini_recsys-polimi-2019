@@ -20,11 +20,14 @@ class MergingTechniques(Enum):
 
 class HybridRecommender:
 
-    def __init__(self, recommenders, merging_type, weights=None):
+    def __init__(self, recommenders, urm_train, merging_type, weights=None, fallback_recommender=None):
         self.recommenders = recommenders
         self.weights = weights
         self.n_recommenders = len(recommenders)
+        self.urm_train = urm_train
+        self.fallback_recommender = fallback_recommender
         if merging_type == MergingTechniques.WEIGHTS:
+            assert self.weights is not None and len(self.weights) == self.n_recommenders
             self.recommend = self.recommend_weights
         elif merging_type == MergingTechniques.RR:
             self.recommend = self.recommend_lists_rr
@@ -37,8 +40,10 @@ class HybridRecommender:
         else:
             raise ValueError('merging_type is not an instance of MergingTechnique')
 
+    def __str__(self):
+        return 'Hybrid'
+
     def get_scores(self, user_id, exclude_seen=True):
-        assert self.weights is not None and len(self.weights) == len(self.recommenders)
         scores = [recommender.get_scores(user_id, exclude_seen) for recommender in self.recommenders]
         scores = [scores[i] * self.weights[i] for i in range(self.n_recommenders)]
         scores = np.array(scores)
@@ -46,7 +51,9 @@ class HybridRecommender:
         return scores
 
     def recommend_weights(self, user_id, at=10, exclude_seen=True):
-        assert self.weights is not None and len(self.weights) == len(self.recommenders)
+        user_profile = self.urm_train[user_id]
+        if user_profile.nnz == 0 and self.fallback_recommender:
+            return self.fallback_recommender.recommend(user_id, at=at, exclude_seen=exclude_seen)
         scores = self.get_scores(user_id, exclude_seen)
         ranking = scores.argsort()[::-1]
         return ranking[:at]

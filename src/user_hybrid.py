@@ -82,10 +82,12 @@ if __name__ == '__main__':
         urm_train = urm.tocsr()
         urm_test = None
     else:
-        urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
+        urm_train, urm_test = train_test_split(urm, SplitType.LOO_CYTHON)
 
     top_pop = TopPopRecommender()
     top_pop.fit(urm_train)
+
+    '''
     item_cbf = ItemCBFKNNRecommender()
     item_cbf.fit(urm_train, icm, top_k=417, shrink=0.3, normalize=True)
     user_cbf = UserCBFKNNRecommender()
@@ -99,6 +101,14 @@ if __name__ == '__main__':
     slim_elasticnet = SLIMElasticNetRecommender()
     slim_elasticnet.fit(urm_train)
     recommenders = [top_pop, item_cbf, user_cbf, item_cf, user_cf, slim_bpr, slim_elasticnet]
+    '''
+
+    item_cf = ItemCFKNNRecommender()
+    item_cf.fit(urm_train)
+    slim_bpr = SLIM_BPR_Cython()
+    slim_bpr.fit(urm_train)
+    hybrid = HybridRecommender([item_cf, slim_bpr], urm_train, fallback_recommender=top_pop, merging_type=MergingTechniques.WEIGHTS, weights=[0.5, 0.5])
+    recommenders = [top_pop, item_cf, slim_bpr, hybrid]
 
     user_segmenter = UserSegmenter(recommenders, urm_train, urm_test)
     user_segmenter.analyze(group_size_percent=0.05)

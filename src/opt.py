@@ -11,11 +11,11 @@ from cbf import ItemCBFKNNRecommender, UserCBFKNNRecommender
 from run_utils import evaluate, build_all_matrices, train_test_split, SplitType
 
 
-def to_optimize(w_icf, w_ucf, w_slim_bpr, w_slim_el):
-    global item_cf, user_cf, slim_bpr, slim_elasticnet
-    hybrid = HybridRecommender([item_cf, user_cf, slim_bpr, slim_elasticnet],
+def to_optimize(w_icf, w_ucf, w_slim_bpr, w_slim_el, w_icbf):
+    global item_cf, user_cf, slim_bpr, slim_elasticnet, item_cbf
+    hybrid = HybridRecommender([item_cf, user_cf, slim_bpr, slim_elasticnet, item_cbf],
                                merging_type=MergingTechniques.WEIGHTS,
-                               weights=[w_icf, w_ucf, w_slim_bpr, w_slim_el])
+                               weights=[w_icf, w_ucf, w_slim_bpr, w_slim_el, w_icbf])
     return evaluate(hybrid, urm_test, cython=True, verbose=False)['MAP']
 
 
@@ -37,13 +37,13 @@ if __name__ == '__main__':
     user_cbf = UserCBFKNNRecommender()
     user_cbf.fit(urm_train, ucm, top_k=496, shrink=0, normalize=False)
 
-    hybrid_fb = HybridRecommender([top_pop, user_cbf], merging_type=MergingTechniques.RR)
+    hybrid_fb = HybridRecommender([top_pop, user_cbf], merging_type=MergingTechniques.MEDRANK)
 
     item_cf = ItemCFKNNRecommender(fallback_recommender=hybrid_fb)
-    item_cf.fit(urm_train, top_k=5, shrink=20, similarity='tanimoto')
+    item_cf.fit(urm_train, top_k=4, shrink=34, normalize=False, similarity='jaccard')
 
     user_cf = UserCFKNNRecommender(fallback_recommender=hybrid_fb)
-    user_cf.fit(urm_train, top_k=715, shrink=60, normalize=True, similarity='tanimoto')
+    user_cf.fit(urm_train, top_k=593, shrink=4, normalize=False, similarity='tanimoto')
 
     slim_bpr = SLIM_BPR(fallback_recommender=hybrid_fb)
     slim_bpr.fit(urm_train, epochs=300)
@@ -51,14 +51,15 @@ if __name__ == '__main__':
     slim_elasticnet = SLIMElasticNetRecommender(fallback_recommender=hybrid_fb)
     slim_elasticnet.fit(urm_train)
 
-    #item_cbf = ItemCBFKNNRecommender()
-    #item_cbf.fit(urm_train, icm, 417, 0, normalize=True)
+    item_cbf = ItemCBFKNNRecommender(fallback_recommender=hybrid_fb)
+    item_cbf.fit(urm_train, icm, 417, 0.3, normalize=True)
 
     pbounds = {
-        'w_icf': (0.001, 3),
-        'w_ucf': (0.001, 3),
-        'w_slim_bpr': (0.001, 3),
-        'w_slim_el': (0.001, 3)
+        'w_icf': (1, 3),
+        'w_ucf': (0.00001, 1),
+        'w_slim_bpr': (1, 3),
+        'w_slim_el': (1, 3),
+        'w_icbf': (0.00001, 1)
     }
 
     optimizer = BayesianOptimization(
