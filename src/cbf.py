@@ -8,10 +8,11 @@ from run_utils import build_all_matrices, train_test_split, SplitType, export, e
 
 class ItemCBFKNNRecommender:
 
-    def __init__(self):
+    def __init__(self, fallback_recommender=None):
         self.urm = None
         self.icm = None
         self.w_sparse = None
+        self.fallback_recommender = fallback_recommender
 
     def __str__(self):
         return 'Item CBF'
@@ -32,9 +33,13 @@ class ItemCBFKNNRecommender:
         return scores
 
     def recommend(self, user_id, at=None, exclude_seen=True):
-        scores = self.get_scores(user_id, exclude_seen)
-        ranking = scores.argsort()[::-1]
-        return ranking[:at]
+        user_profile = self.urm[user_id]
+        if user_profile.nnz == 0 and self.fallback_recommender:
+            return self.fallback_recommender.recommend(user_id, at=at, exclude_seen=exclude_seen)
+        else:
+            scores = self.get_scores(user_id, exclude_seen)
+            ranking = scores.argsort()[::-1]
+            return ranking[:at]
 
     def filter_seen(self, user_id, scores):
         start_pos = self.urm.indptr[user_id]
