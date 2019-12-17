@@ -87,7 +87,7 @@ class HybridRecommender:
 
 if __name__ == '__main__':
     #np.random.seed(42)
-    EXPORT = False
+    EXPORT = True
     urm, icm, ucm, target_users = build_all_matrices()
     if EXPORT:
         urm_train = urm.tocsr()
@@ -119,12 +119,11 @@ if __name__ == '__main__':
     item_cbf = ItemCBFKNNRecommender()
     item_cbf.fit(urm_train, icm, 417, 0.3, normalize=True)
 
-    hybrid = HybridRecommender([item_cf, user_cf, slim_bpr, slim_elasticnet, item_cbf],
+    hybrid = HybridRecommender([item_cbf, item_cf, slim_bpr, slim_elasticnet, user_cf],
                                urm_train,
                                merging_type=MergingTechniques.WEIGHTS,
-                               weights=[0.9995, 0.08443, 5.576, 0.9982, 0.04314],
-                               fallback_recommender=hybrid_fb
-                               )
+                               weights=[0.7798, 9.089, 0.032, 9.949, 0.4748],
+                               fallback_recommender=hybrid_fb)
 
     if EXPORT:
         export(target_users, hybrid)
