@@ -143,14 +143,21 @@ class AlternatingLeastSquare:
         self.user_factors = model.user_factors
         self.item_factors = model.item_factors
 
-    def get_expected_ratings(self, playlist_id):
-        scores = np.dot(self.user_factors[playlist_id], self.item_factors.T)
+    def filter_seen(self, user_id, scores):
+        start_pos = self.urm.indptr[user_id]
+        end_pos = self.urm.indptr[user_id + 1]
+        user_profile = self.urm.indices[start_pos:end_pos]
+        scores[user_profile] = -np.inf
+        return scores
+
+    def get_scores(self, user_id, exclude_seen=True):
+        scores = np.dot(self.user_factors[user_id], self.item_factors.T)
 
         return np.squeeze(scores)
 
     def recommend(self, user_id, at=10):
         user_id = int(user_id)
-        expected_ratings = self.get_expected_ratings(user_id)
+        expected_ratings = self.get_scores(user_id)
 
         recommended_items = np.flip(np.argsort(expected_ratings), 0)
 
@@ -181,8 +188,8 @@ def tuner():
 
 if __name__ == '__main__':
     np.random.seed(42)
-    tuner()
-    exit()
+    """tuner()
+    exit()"""
 
     EXPORT = False
     urm, icm, ucm, target_users = build_all_matrices()
@@ -191,16 +198,11 @@ if __name__ == '__main__':
         urm_test = None
     else:
         urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
-    use_cuda = False
-    if use_cuda and torch.cuda.is_available():
-        device = torch.device('cuda')
-        print("MF_MSE_PyTorch: Using CUDA")
-    else:
-        device = torch.device('cpu')
-        print("MF_MSE_PyTorch: Using CPU")
-    rec = AlternatingLeastSquare()
-    rec.fit(urm_train)
+
+    ALS = AlternatingLeastSquare()
+    ALS.fit(urm_train, n_factors=999, regularization=97.7, iterations=196)
+
     if EXPORT:
-        export(target_users, rec)
+        export(target_users, ALS)
     else:
-        evaluate(rec, urm_test, cython=True)
+        evaluate(ALS, urm_test, cython=False, verbose=True)

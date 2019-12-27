@@ -57,7 +57,7 @@ if __name__ == '__main__':
     slim_enet.fit(urm_train)
 
     als = AlternatingLeastSquare()
-    als.fit(urm_train, n_factors=406, regularization=84.37, iterations=132)
+    als.fit(urm_train, n_factors=497, regularization=9.79, iterations=127)
 
     pbounds = {
         'w_icbf': (0.00001, 1),
