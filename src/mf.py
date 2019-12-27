@@ -159,6 +159,7 @@ class AlternatingLeastSquare:
         recommended_items = recommended_items[unseen_items_mask]
         return recommended_items[0:at]
 
+
 def tuner():
     urm, icm, ucm, _ = build_all_matrices()
     urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
@@ -176,6 +177,7 @@ def tuner():
     for i, res in enumerate(optimizer.res):
         print("Iteration {}: \n\t{}".format(i, res))
     print(optimizer.max)
+
 
 if __name__ == '__main__':
     np.random.seed(42)
