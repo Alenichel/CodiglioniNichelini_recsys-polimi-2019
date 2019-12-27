@@ -10,3 +10,4 @@ torchvision
 scikit-optimize
 bayesian-optimization
 pandas
+implicit
