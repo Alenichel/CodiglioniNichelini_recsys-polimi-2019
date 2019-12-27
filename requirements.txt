@@ -10,4 +10,5 @@ torchvision
 scikit-optimize
 bayesian-optimization
 pandas
+xgboost
 implicit
