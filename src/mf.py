@@ -137,7 +137,7 @@ class AlternatingLeastSquare:
         data_conf = (sparse_item_user * alpha_val).astype('double')
 
         # Fit the model
-        model.fit(data_conf)
+        model.fit(data_conf, show_progress=False)
 
         # Get the user and item vectors from our trained model
         self.user_factors = model.user_factors
@@ -162,7 +162,7 @@ class AlternatingLeastSquare:
 def tuner():
     urm, icm, ucm, _ = build_all_matrices()
     urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
-    pbounds = {'n_factors': (0, 500), 'regularization': (0, 10), 'iterations': (0, 200)}
+    pbounds = {'n_factors': (0, 1000), 'regularization': (0, 100), 'iterations': (0, 200)}
 
     def rec_round(n_factors, regularization, iterations):
         n_factors = int(n_factors)
@@ -178,10 +178,10 @@ def tuner():
     print(optimizer.max)
 
 if __name__ == '__main__':
+    np.random.seed(42)
     tuner()
     exit()
-    """
-    np.random.seed(42)
+
     EXPORT = False
     urm, icm, ucm, target_users = build_all_matrices()
     if EXPORT:
@@ -201,4 +201,4 @@ if __name__ == '__main__':
     if EXPORT:
         export(target_users, rec)
     else:
-        evaluate(rec, urm_test, cython=True)"""
+        evaluate(rec, urm_test, cython=True)
