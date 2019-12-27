@@ -56,6 +56,7 @@ class ModelHybridRecommender:
 
 
 def to_optimize(top_k, w_icf, w_sbpr, w_senet):
+    top_k = int(top_k)
     hybrid = ModelHybridRecommender([item_cf.w_sparse, slim_bpr.W, slim_enet.W_sparse], [w_icf, w_sbpr, w_senet])
     hybrid.fit(urm_train, top_k=top_k)
     return evaluate(hybrid, urm_test, cython=True, verbose=False)['MAP']
