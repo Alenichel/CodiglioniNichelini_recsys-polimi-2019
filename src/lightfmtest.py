@@ -6,6 +6,7 @@ from lightfm import LightFM
 from lightfm.evaluation import precision_at_k
 import matplotlib.pyplot as plt
 from run_utils import build_all_matrices, train_test_split, evaluate, export, SplitType
+from bayes_opt import BayesianOptimization
 
 
 class LightFMRecommender:
@@ -41,26 +42,42 @@ class LightFMRecommender:
         return scores
 
 
+def rec_round(no_components, learning_rate, item_alpha, user_alpha, max_sampled):
+    no_components = int(no_components)
+    max_sampled = int(max_sampled)
+    model = LightFM(loss='warp',
+                    learning_schedule='adagrad',
+                    no_components=no_components,
+                    learning_rate=learning_rate,
+                    item_alpha=item_alpha,
+                    user_alpha=user_alpha,
+                    max_sampled=max_sampled)
+    model.fit(urm_train, user_features=ucm, item_features=icm, epochs=2)
+    return precision_at_k(model, urm_test, urm_train, 10, ucm, icm).mean()
+
+
 if __name__ == '__main__':
+    np.random.seed(42)
     EXPORT = False
-    urm, icm, target_users = build_all_matrices()
+    urm, icm, ucm, target_users = build_all_matrices()
     if EXPORT:
         urm_train = urm
         urm_test = None
     else:
         urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
-    model = LightFM(loss='warp-kos', learning_schedule='adadelta')
-    x = []
-    precisions = []
-    TOTAL_EPOCHS = 1000
-    EPOCHS_PER_BATCH = 100
-    for epoch in trange(TOTAL_EPOCHS // EPOCHS_PER_BATCH, desc='Training'):
-        for batch_epoch in trange(EPOCHS_PER_BATCH, desc='Batch'):
-            model.fit_partial(urm_train, item_features=icm, epochs=1)
-        x.append((epoch + 1) * EPOCHS_PER_BATCH)
-        precisions.append(precision_at_k(model, test_interactions=urm_test, item_features=icm).mean())
-        plt.plot(x, precisions)
-        plt.show()
+
+    pbounds = {
+        'no_components': (10, 100),
+        'learning_rate': (0.001, 0.1),
+        'item_alpha': (0, 1),
+        'user_alpha': (0, 1),
+        'max_sampled': (1, 100)
+    }
+
+    optimizer = BayesianOptimization(f=rec_round, pbounds=pbounds)
+    optimizer.maximize(init_points=10, n_iter=200)
+    print(optimizer.max)
+
     '''
     lightfm_rec = LightFMRecommender()
     lightfm_rec.fit(urm_train, icm, epochs=100)
