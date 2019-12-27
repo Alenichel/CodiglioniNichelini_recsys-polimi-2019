@@ -6,7 +6,7 @@ import implicit
 from torch.utils.data import Dataset, DataLoader
 from torch.autograd import Variable
 from run_utils import build_all_matrices, train_test_split, SplitType, export, evaluate
-
+from bayes_opt import BayesianOptimization
 
 class MF_MSE_PyTorch_model(torch.nn.Module):
 
@@ -116,12 +116,15 @@ class AlternatingLeastSquare:
     This is Alternating Least Squares.
     """
 
-    def __init__(self, n_factors=300, regularization=0.15, iterations=30):
+    def __init__(self):
+        self.n_factors = None
+        self.regularization = None
+        self.iterations = None
+
+    def fit(self, URM, n_factors=300, regularization=0.15, iterations=30):
         self.n_factors = n_factors
         self.regularization = regularization
         self.iterations = iterations
-
-    def fit(self, URM):
         self.URM = URM
         sparse_item_user = self.URM.T
 
@@ -156,8 +159,28 @@ class AlternatingLeastSquare:
         recommended_items = recommended_items[unseen_items_mask]
         return recommended_items[0:at]
 
+def tuner():
+    urm, icm, ucm, _ = build_all_matrices()
+    urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
+    pbounds = {'n_factors': (0, 500), 'regularization': (0, 10), 'iterations': (0, 200)}
+
+    def rec_round(n_factors, regularization, iterations):
+        n_factors = int(n_factors)
+        iterations = int(iterations)
+        ALS = AlternatingLeastSquare()
+        ALS.fit(urm_train, n_factors=n_factors, regularization=regularization, iterations=iterations)
+        return evaluate(ALS, urm_test, cython=True, verbose=False)['MAP']
+
+    optimizer = BayesianOptimization(f=rec_round, pbounds=pbounds)
+    optimizer.maximize(init_points=10, n_iter=500)
+    for i, res in enumerate(optimizer.res):
+        print("Iteration {}: \n\t{}".format(i, res))
+    print(optimizer.max)
 
 if __name__ == '__main__':
+    tuner()
+    exit()
+    """
     np.random.seed(42)
     EXPORT = False
     urm, icm, ucm, target_users = build_all_matrices()
@@ -178,4 +201,4 @@ if __name__ == '__main__':
     if EXPORT:
         export(target_users, rec)
     else:
-        evaluate(rec, urm_test, cython=True)
+        evaluate(rec, urm_test, cython=True)"""
