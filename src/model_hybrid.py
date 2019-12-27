@@ -83,8 +83,8 @@ if __name__ == '__main__':
     pbounds = {
         'top_k': (0, 500),
         'w_icf': (0, 100),
-        'w_slim_bpr': (0, 100),
-        'w_slim_enet': (0, 100)
+        'w_sbpr': (0, 100),
+        'w_senet': (0, 100)
     }
 
     optimizer = BayesianOptimization(
