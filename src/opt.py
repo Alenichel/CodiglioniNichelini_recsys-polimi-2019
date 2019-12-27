@@ -9,14 +9,15 @@ from hybrid import HybridRecommender, MergingTechniques
 from basic_recommenders import TopPopRecommender
 from cbf import ItemCBFKNNRecommender, UserCBFKNNRecommender
 from run_utils import evaluate, build_all_matrices, train_test_split, SplitType
+from mf import AlternatingLeastSquare
 
 
-def to_optimize(w_icbf, w_icf, w_ucf, w_slim_bpr, w_slim_enet):
-    global item_cbf, item_cf, user_cf, slim_bpr, slim_enet
-    hybrid = HybridRecommender([item_cbf, item_cf, user_cf, slim_bpr, slim_enet],
+def to_optimize(w_icbf, w_icf, w_ucf, w_slim_bpr, w_slim_enet, w_als):
+    global item_cbf, item_cf, user_cf, slim_bpr, slim_enet, als
+    hybrid = HybridRecommender([item_cbf, item_cf, user_cf, slim_bpr, slim_enet, als],
                                urm_train,
                                merging_type=MergingTechniques.WEIGHTS,
-                               weights=[w_icbf, w_icf, w_ucf, w_slim_bpr, w_slim_enet])
+                               weights=[w_icbf, w_icf, w_ucf, w_slim_bpr, w_slim_enet, w_als])
     return evaluate(hybrid, urm_test, cython=True, verbose=False)['MAP']
 
 
@@ -55,12 +56,16 @@ if __name__ == '__main__':
     slim_enet = SLIMElasticNetRecommender()
     slim_enet.fit(urm_train)
 
+    als = AlternatingLeastSquare()
+    als.fit(urm_train, n_factors=406, regularization=84.37, iterations=132)
+
     pbounds = {
-        'w_icbf': (0.00001, 3),
-        'w_icf': (0.00001, 3),
-        'w_ucf': (0.00001, 3),
-        'w_slim_bpr': (0.00001, 3),
-        'w_slim_enet': (0.00001, 3),
+        'w_icbf': (0.00001, 1),
+        'w_icf': (8, 10),
+        'w_ucf': (0.00001, 1),
+        'w_slim_bpr': (0.00001, 1),
+        'w_slim_enet': (8, 10),
+        'w_als': (0.00001, 10)
     }
 
     optimizer = BayesianOptimization(
