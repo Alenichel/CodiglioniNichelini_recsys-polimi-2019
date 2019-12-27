@@ -55,8 +55,8 @@ class ModelHybridRecommender:
         return scores
 
 
-def to_optimize(w_icf, w_slim_bpr, w_slim_enet):
-    hybrid = ModelHybridRecommender([item_cf.w_sparse, slim_bpr.W, slim_enet.W_sparse], [w_icf, w_slim_bpr, w_slim_enet])
+def to_optimize(w_icf, w_sbpr, w_senet):
+    hybrid = ModelHybridRecommender([item_cf.w_sparse, slim_bpr.W, slim_enet.W_sparse], [w_icf, w_sbpr, w_senet])
     hybrid.fit(urm_train)
     return evaluate(hybrid, urm_test, cython=True, verbose=False)['MAP']
 
@@ -81,9 +81,9 @@ if __name__ == '__main__':
     slim_enet.fit(urm_train)
 
     pbounds = {
-        'w_icf': (0, 1),
-        'w_slim_bpr': (0, 1),
-        'w_slim_enet': (0, 1)
+        'w_icf': (0, 100),
+        'w_slim_bpr': (0, 100),
+        'w_slim_enet': (0, 100)
     }
 
     optimizer = BayesianOptimization(
