@@ -121,7 +121,7 @@ class AlternatingLeastSquare:
         self.regularization = None
         self.iterations = None
 
-    def fit(self, URM, n_factors=300, regularization=0.15, iterations=30):
+    def fit(self, URM, n_factors=300, regularization=0.15, iterations=30, verbose=True):
         self.n_factors = n_factors
         self.regularization = regularization
         self.iterations = iterations
@@ -137,7 +137,7 @@ class AlternatingLeastSquare:
         data_conf = (sparse_item_user * alpha_val).astype('double')
 
         # Fit the model
-        model.fit(data_conf, show_progress=False)
+        model.fit(data_conf, show_progress=verbose)
 
         # Get the user and item vectors from our trained model
         self.user_factors = model.user_factors
