@@ -97,8 +97,8 @@ def to_optimize(w_mh, w_ucf, w_icbf, w_als):
 
 
 if __name__ == '__main__':
-    #np.random.seed(42)
-    EXPORT = True
+    np.random.seed(42)
+    EXPORT = False
     urm, icm, ucm, target_users = build_all_matrices()
     if EXPORT:
         urm_train = urm.tocsr()
@@ -136,18 +136,6 @@ if __name__ == '__main__':
     als = AlternatingLeastSquare()
     als.fit(urm_train, n_factors=868, regularization=99.75, iterations=152)
 
-    hybrid = HybridRecommender([model_hybrid, user_cf, item_cbf, als],
-                               urm_train,
-                               merging_type=MergingTechniques.WEIGHTS,
-                               weights=[0.4767, 2.199, 2.604, 7.085],
-                               fallback_recommender=hybrid_fb)
-
-    if EXPORT:
-        export(target_users, hybrid)
-    else:
-        evaluate(hybrid, urm_test)
-    exit()
-
     pbounds = {
         'w_mh': (0, 10),
         'w_ucf': (0, 3),
@@ -162,7 +150,7 @@ if __name__ == '__main__':
 
     optimizer.maximize(
         init_points=30,
-        n_iter=100,
+        n_iter=300,
     )
 
     print(optimizer.max)
