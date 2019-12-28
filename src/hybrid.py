@@ -146,6 +146,7 @@ if __name__ == '__main__':
         export(target_users, hybrid)
     else:
         evaluate(hybrid, urm_test)
+    exit()
 
     pbounds = {
         'w_mh': (0, 10),
