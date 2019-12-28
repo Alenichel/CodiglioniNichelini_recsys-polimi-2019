@@ -5,8 +5,6 @@ sklearn
 tqdm
 lightfm
 matplotlib
-torch
-torchvision
 scikit-optimize
 bayesian-optimization
 pandas
