@@ -9,7 +9,7 @@ from cython_modules.SLIM_BPR.SLIM_BPR_CYTHON import SLIM_BPR
 from basic_recommenders import TopPopRecommender
 from enum import Enum
 from slim_elasticnet import SLIMElasticNetRecommender
-
+from mf import AlternatingLeastSquare
 
 class MergingTechniques(Enum):
     WEIGHTS = 1
@@ -119,10 +119,13 @@ if __name__ == '__main__':
     item_cbf = ItemCBFKNNRecommender()
     item_cbf.fit(urm_train, icm, 417, 0.3, normalize=True)
 
-    hybrid = HybridRecommender([item_cbf, item_cf, slim_bpr, slim_elasticnet, user_cf],
+    als = AlternatingLeastSquare()
+    als.fit(urm_train, n_factors=497, regularization=9.79, iterations=127)
+
+    hybrid = HybridRecommender([item_cbf, item_cf, slim_bpr, slim_elasticnet, user_cf, als],
                                urm_train,
                                merging_type=MergingTechniques.WEIGHTS,
-                               weights=[0.7798, 9.089, 0.032, 9.949, 0.4748],
+                               weights=[0.7798, 9.089, 0.032, 9.949, 0.4748, 2.18],
                                fallback_recommender=hybrid_fb)
 
     if EXPORT:
