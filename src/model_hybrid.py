@@ -82,10 +82,10 @@ if __name__ == '__main__':
     slim_enet.fit(urm_train)
 
     pbounds = {
-        'top_k': (0, 500),
+        'top_k': (0, 1000),
         'w_icf': (0, 100),
-        'w_sbpr': (0, 100),
-        'w_senet': (0, 100)
+        'w_sbpr': (0, 1000),
+        'w_senet': (0, 1000)
     }
 
     optimizer = BayesianOptimization(
