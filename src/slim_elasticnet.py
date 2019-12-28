@@ -2,6 +2,7 @@
 
 import numpy as np
 import scipy.sparse as sps
+from os.path import exists
 from sklearn.linear_model import ElasticNet
 from sklearn.utils.testing import ignore_warnings
 from sklearn.exceptions import ConvergenceWarning
@@ -20,6 +21,12 @@ class SLIMElasticNetRecommender:
     def __str__(self):
         return 'SLIM ElasticNet'
 
+    @staticmethod
+    def get_cache_filename(l1_penalty, l2_penalty, topK):
+        seed = np.random.get_state()[1][0]
+        return '{seed}_{l1_penalty}_{l2_penalty}_{topK}' \
+            .format(seed=seed, l1_penalty=l1_penalty, l2_penalty=l2_penalty, topK=topK)
+
     @ignore_warnings(category=ConvergenceWarning)
     def fit(self, urm_train, l1_penalty=0.01, l2_penalty=0.01, positive_only=True, topK=100):
         self.urm_train = urm_train
@@ -28,6 +35,12 @@ class SLIMElasticNetRecommender:
         else:
             print("SLIM_ElasticNet: l1_penalty+l2_penalty cannot be equal to zero, setting the ratio l1/(l1+l2) to 1.0")
             l1_ratio = 1.0
+        cache_file = 'models/slim_elasticnet/' + SLIMElasticNetRecommender.get_cache_filename(l1_penalty, l2_penalty, topK) + '.npz'
+        if exists(cache_file):
+            print('Using cached model')
+            data = np.load(cache_file, allow_pickle=True)
+            self.W_sparse = sps.load_npz(cache_file)
+            return
         self.model = ElasticNet(alpha=1e-4,
                                 l1_ratio=l1_ratio,
                                 positive=positive_only,
@@ -97,6 +110,7 @@ class SLIMElasticNetRecommender:
         # generate the sparse weight matrix
         self.W_sparse = sps.csr_matrix((values[:numCells], (rows[:numCells], cols[:numCells])),
                                        shape=(n_items, n_items), dtype=np.float32)
+        sps.save_npz(cache_file, self.W_sparse)
 
     def get_scores(self, user_id, exclude_seen=True):
         user_profile = self.urm_train[user_id]
@@ -127,6 +141,7 @@ class SLIMElasticNetRecommender:
 
 
 if __name__ == '__main__':
+    np.random.seed(42)
     EXPORT = False
     urm, icm, ucm, target_users = build_all_matrices()
     if EXPORT:
