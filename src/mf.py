@@ -62,14 +62,12 @@ class AlternatingLeastSquare:
 def tuner():
     urm, icm, ucm, _ = build_all_matrices()
     urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
-    pbounds = {'n_factors': (0, 1000), 'regularization': (0, 100), 'iterations': (0, 200)}
+    pbounds = {'alpha': (0, 50)}
 
-    def rec_round(n_factors, regularization, iterations):
-        n_factors = int(n_factors)
-        iterations = int(iterations)
-        ALS = AlternatingLeastSquare()
-        ALS.fit(urm_train, n_factors=n_factors, regularization=regularization, iterations=iterations)
-        return evaluate(ALS, urm_test, cython=True, verbose=False)['MAP']
+    def rec_round(alpha):
+        als = AlternatingLeastSquare()
+        als.fit(urm_train, n_factors=868, regularization=99.75, iterations=152, alpha=alpha)
+        return evaluate(als, urm_test, cython=True, verbose=False)['MAP']
 
     optimizer = BayesianOptimization(f=rec_round, pbounds=pbounds)
     optimizer.maximize(init_points=10, n_iter=500)
