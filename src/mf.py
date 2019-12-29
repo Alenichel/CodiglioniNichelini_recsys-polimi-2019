@@ -23,14 +23,16 @@ class AlternatingLeastSquare:
     def fit(self, urm, n_factors=300, regularization=0.15, iterations=30, alpha=24, verbose=True, cache=True):
         self.urm = urm
         cache_file = 'models/als/' + AlternatingLeastSquare.get_cache_filename(n_factors, regularization, iterations, alpha) + '.npy'
-        if cache and exists(cache_file):
-            if verbose:
-                print('Using cached model')
-            data = np.load(cache_file, allow_pickle=True)
-            self.user_factors = data[0]
-            self.item_factors = data[1]
-            return
-        print('{cache_file} not found'.format(cache_file=cache_file))
+        if cache:
+            if exists(cache_file):
+                if verbose:
+                    print('Using cached model')
+                data = np.load(cache_file, allow_pickle=True)
+                self.user_factors = data[0]
+                self.item_factors = data[1]
+                return
+            else:
+                print('{cache_file} not found'.format(cache_file=cache_file))
         sparse_item_user = self.urm.T
         # Initialize the als model and fit it using the sparse item-user matrix
         model = implicit.als.AlternatingLeastSquares(factors=n_factors, regularization=regularization, iterations=iterations)

@@ -36,12 +36,14 @@ class SLIMElasticNetRecommender:
             print("SLIM_ElasticNet: l1_penalty+l2_penalty cannot be equal to zero, setting the ratio l1/(l1+l2) to 1.0")
             l1_ratio = 1.0
         cache_file = 'models/slim_elasticnet/' + SLIMElasticNetRecommender.get_cache_filename(l1_penalty, l2_penalty, topK) + '.npz'
-        if cache and exists(cache_file):
-            print('Using cached model')
-            data = np.load(cache_file, allow_pickle=True)
-            self.W_sparse = sps.load_npz(cache_file)
-            return
-        print('{cache_file} not found'.format(cache_file=cache_file))
+        if cache:
+            if exists(cache_file):
+                print('Using cached model')
+                data = np.load(cache_file, allow_pickle=True)
+                self.W_sparse = sps.load_npz(cache_file)
+                return
+            else:
+                print('{cache_file} not found'.format(cache_file=cache_file))
         self.model = ElasticNet(alpha=1e-4,
                                 l1_ratio=l1_ratio,
                                 positive=positive_only,
