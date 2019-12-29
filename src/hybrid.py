@@ -123,7 +123,7 @@ if __name__ == '__main__':
     slim_bpr.fit(urm_train, epochs=300)
     # SLIM ELASTICNET
     slim_enet = SLIMElasticNetRecommender(fallback_recommender=hybrid_fb)
-    slim_enet.fit(urm_train)
+    slim_enet.fit(urm_train, cache=not EXPORT)
     # MODEL HYBRID
     model_hybrid = ModelHybridRecommender([item_cf.w_sparse, slim_bpr.W, slim_enet.W_sparse], [42.82, 535.4, 52.17], fallback_recommender=hybrid_fb)
     model_hybrid.fit(urm_train, top_k=977)
@@ -135,7 +135,7 @@ if __name__ == '__main__':
     item_cbf.fit(urm_train, icm, 417, 0.3, normalize=True)
     # ALS
     als = AlternatingLeastSquare()
-    als.fit(urm_train, n_factors=896, regularization=99.75, iterations=152)
+    als.fit(urm_train, n_factors=896, regularization=99.75, iterations=152, cache=not EXPORT)
 
     hybrid = HybridRecommender([model_hybrid, user_cf, item_cbf, als],
                                urm_train,
