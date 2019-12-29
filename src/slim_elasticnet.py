@@ -41,6 +41,7 @@ class SLIMElasticNetRecommender:
             data = np.load(cache_file, allow_pickle=True)
             self.W_sparse = sps.load_npz(cache_file)
             return
+        print('{cache_file} not found. Starting training.'.format(cache_file=cache_file))
         self.model = ElasticNet(alpha=1e-4,
                                 l1_ratio=l1_ratio,
                                 positive=positive_only,
@@ -111,6 +112,7 @@ class SLIMElasticNetRecommender:
         self.W_sparse = sps.csr_matrix((values[:numCells], (rows[:numCells], cols[:numCells])),
                                        shape=(n_items, n_items), dtype=np.float32)
         sps.save_npz(cache_file, self.W_sparse)
+        print('Model cached to file {cache_file}'.format(cache_file=cache_file))
 
     def get_scores(self, user_id, exclude_seen=True):
         user_profile = self.urm_train[user_id]

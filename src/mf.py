@@ -30,6 +30,7 @@ class AlternatingLeastSquare:
             self.user_factors = data[0]
             self.item_factors = data[1]
             return
+        print('{cache_file} not found. Starting training.'.format(cache_file=cache_file))
         sparse_item_user = self.urm.T
         # Initialize the als model and fit it using the sparse item-user matrix
         model = implicit.als.AlternatingLeastSquares(factors=n_factors, regularization=regularization, iterations=iterations)
@@ -42,6 +43,7 @@ class AlternatingLeastSquare:
         self.item_factors = model.item_factors
         data = np.array([self.user_factors, self.item_factors])
         np.save(cache_file, data)
+        print('Model cached to file {cache_file}'.format(cache_file=cache_file))
 
     def get_scores(self, user_id, exclude_seen=True):
         scores = np.dot(self.user_factors[user_id], self.item_factors.T)

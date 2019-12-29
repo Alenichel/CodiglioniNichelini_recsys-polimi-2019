@@ -137,10 +137,10 @@ if __name__ == '__main__':
     als.fit(urm_train, n_factors=868, regularization=99.75, iterations=152)
 
     pbounds = {
-        'w_mh': (0, 10),
-        'w_ucf': (0, 3),
-        'w_icbf': (0, 3),
-        'w_als': (0, 10)
+        'w_mh': (0, 1),
+        'w_ucf': (2, 3),
+        'w_icbf': (2, 3),
+        'w_als': (7, 10)
     }
 
     optimizer = BayesianOptimization(
@@ -150,7 +150,7 @@ if __name__ == '__main__':
 
     optimizer.maximize(
         init_points=30,
-        n_iter=300,
+        n_iter=100,
     )
 
     print(optimizer.max)
