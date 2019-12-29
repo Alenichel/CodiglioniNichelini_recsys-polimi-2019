@@ -20,10 +20,10 @@ class AlternatingLeastSquare:
         return '{seed}_{n_factors}_{regularization}_{iterations}_{alpha}'\
             .format(seed=seed, n_factors=n_factors, regularization=regularization, iterations=iterations, alpha=alpha)
 
-    def fit(self, urm, n_factors=300, regularization=0.15, iterations=30, alpha=24, verbose=True):
+    def fit(self, urm, n_factors=300, regularization=0.15, iterations=30, alpha=24, verbose=True, cache=True):
         self.urm = urm
         cache_file = 'models/als/' + AlternatingLeastSquare.get_cache_filename(n_factors, regularization, iterations, alpha) + '.npy'
-        if exists(cache_file):
+        if cache and exists(cache_file):
             if verbose:
                 print('Using cached model')
             data = np.load(cache_file, allow_pickle=True)
@@ -42,8 +42,9 @@ class AlternatingLeastSquare:
         self.user_factors = model.user_factors
         self.item_factors = model.item_factors
         data = np.array([self.user_factors, self.item_factors])
-        np.save(cache_file, data)
-        print('Model cached to file {cache_file}'.format(cache_file=cache_file))
+        if cache:
+            np.save(cache_file, data)
+            print('Model cached to file {cache_file}'.format(cache_file=cache_file))
 
     def get_scores(self, user_id, exclude_seen=True):
         scores = np.dot(self.user_factors[user_id], self.item_factors.T)
@@ -66,7 +67,7 @@ def tuner():
 
     def rec_round(alpha):
         als = AlternatingLeastSquare()
-        als.fit(urm_train, n_factors=868, regularization=99.75, iterations=152, alpha=alpha)
+        als.fit(urm_train, n_factors=868, regularization=99.75, iterations=152, alpha=alpha, cache=False, verbose=False)
         return evaluate(als, urm_test, cython=True, verbose=False)['MAP']
 
     optimizer = BayesianOptimization(f=rec_round, pbounds=pbounds)
