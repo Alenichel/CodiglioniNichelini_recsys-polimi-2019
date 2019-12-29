@@ -78,8 +78,8 @@ def tuner():
 
 if __name__ == '__main__':
     np.random.seed(42)
-    """tuner()
-    exit()"""
+    tuner()
+    exit()
 
     EXPORT = False
     urm, icm, ucm, target_users = build_all_matrices()
