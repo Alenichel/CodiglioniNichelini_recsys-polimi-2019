@@ -30,7 +30,7 @@ class AlternatingLeastSquare:
             self.user_factors = data[0]
             self.item_factors = data[1]
             return
-        print('{cache_file} not found. Starting training.'.format(cache_file=cache_file))
+        print('{cache_file} not found'.format(cache_file=cache_file))
         sparse_item_user = self.urm.T
         # Initialize the als model and fit it using the sparse item-user matrix
         model = implicit.als.AlternatingLeastSquares(factors=n_factors, regularization=regularization, iterations=iterations)

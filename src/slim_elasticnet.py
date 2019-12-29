@@ -41,7 +41,7 @@ class SLIMElasticNetRecommender:
             data = np.load(cache_file, allow_pickle=True)
             self.W_sparse = sps.load_npz(cache_file)
             return
-        print('{cache_file} not found. Starting training.'.format(cache_file=cache_file))
+        print('{cache_file} not found'.format(cache_file=cache_file))
         self.model = ElasticNet(alpha=1e-4,
                                 l1_ratio=l1_ratio,
                                 positive=positive_only,
