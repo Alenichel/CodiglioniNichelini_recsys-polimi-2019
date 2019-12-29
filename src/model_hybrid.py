@@ -5,6 +5,7 @@ from Base.Recommender_utils import similarityMatrixTopK
 from run_utils import build_all_matrices, train_test_split, SplitType, export, evaluate
 from basic_recommenders import TopPopRecommender
 from cf import ItemCFKNNRecommender
+from cbf import UserCBFKNNRecommender
 from cython_modules.SLIM_BPR.SLIM_BPR_CYTHON import SLIM_BPR
 from slim_elasticnet import SLIMElasticNetRecommender
 from bayes_opt import BayesianOptimization
@@ -12,7 +13,7 @@ from bayes_opt import BayesianOptimization
 
 class ModelHybridRecommender:
 
-    def __init__(self, models, weights):
+    def __init__(self, models, weights, fallback_recommender=None):
         assert len(models) >= 1 and len(models) == len(weights)
         for m in models:
             assert m.shape == models[0].shape
@@ -20,7 +21,7 @@ class ModelHybridRecommender:
         self.weights = np.array(weights)
         self.urm = None
         self.w_sparse = None
-        self.fallback_recommender = None
+        self.fallback_recommender = fallback_recommender
         self.use_tail_boost = False
         self.tb = None
 
@@ -57,12 +58,13 @@ class ModelHybridRecommender:
 
 def to_optimize(top_k, w_icf, w_sbpr, w_senet):
     top_k = int(top_k)
-    hybrid = ModelHybridRecommender([item_cf.w_sparse, slim_bpr.W, slim_enet.W_sparse], [w_icf, w_sbpr, w_senet])
-    hybrid.fit(urm_train, top_k=top_k)
-    return evaluate(hybrid, urm_test, cython=True, verbose=False)['MAP']
+    model_hybrid = ModelHybridRecommender([item_cf.w_sparse, slim_bpr.W, slim_enet.W_sparse], [w_icf, w_sbpr, w_senet])
+    model_hybrid.fit(urm_train, top_k=top_k)
+    return evaluate(model_hybrid, urm_test, cython=True, verbose=False)['MAP']
 
 
 if __name__ == '__main__':
+    from hybrid import HybridRecommender, MergingTechniques
     np.random.seed(42)
     EXPORT = False
     urm, icm, ucm, target_users = build_all_matrices()
@@ -72,14 +74,32 @@ if __name__ == '__main__':
     else:
         urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
 
+    # TOP-POP
     top_pop = TopPopRecommender()
     top_pop.fit(urm_train)
-    item_cf = ItemCFKNNRecommender(fallback_recommender=top_pop)
+    # USER CBF
+    user_cbf = UserCBFKNNRecommender()
+    user_cbf.fit(urm_train, ucm, top_k=496, shrink=0, normalize=False)
+    # HYBRID FALLBACK
+    hybrid_fb = HybridRecommender([top_pop, user_cbf], urm_train, merging_type=MergingTechniques.MEDRANK)
+    # ITEM CF
+    item_cf = ItemCFKNNRecommender(fallback_recommender=hybrid_fb)
     item_cf.fit(urm_train, top_k=4, shrink=34, normalize=False, similarity='jaccard')
-    slim_bpr = SLIM_BPR(fallback_recommender=top_pop)
+    # SLIM BPR
+    slim_bpr = SLIM_BPR(fallback_recommender=hybrid_fb)
     slim_bpr.fit(urm_train, epochs=300)
-    slim_enet = SLIMElasticNetRecommender(fallback_recommender=top_pop)
+    # SLIM ELASTICNET
+    slim_enet = SLIMElasticNetRecommender(fallback_recommender=hybrid_fb)
     slim_enet.fit(urm_train)
+    # MODEL HYBRID
+    model_hybrid = ModelHybridRecommender([item_cf.w_sparse, slim_bpr.W, slim_enet.W_sparse], [42.82, 535.4, 52.17], fallback_recommender=hybrid_fb)
+    model_hybrid.fit(urm_train, top_k=977)
+
+    if EXPORT:
+        export(target_users, model_hybrid)
+    else:
+        evaluate(model_hybrid, urm_test)
+    exit()
 
     pbounds = {
         'top_k': (0, 1000),
@@ -99,8 +119,3 @@ if __name__ == '__main__':
     )
 
     print(optimizer.max)
-
-    #if EXPORT:
-    #    export(target_users, hybrid)
-    #else:
-    #    evaluate(hybrid, urm_test, cython=True)

@@ -13,6 +13,7 @@ from mf import AlternatingLeastSquare
 from model_hybrid import ModelHybridRecommender
 from bayes_opt import BayesianOptimization
 
+
 class MergingTechniques(Enum):
     WEIGHTS = 1
     RR = 2
@@ -124,7 +125,7 @@ if __name__ == '__main__':
     slim_enet = SLIMElasticNetRecommender(fallback_recommender=hybrid_fb)
     slim_enet.fit(urm_train)
     # MODEL HYBRID
-    model_hybrid = ModelHybridRecommender([item_cf.w_sparse, slim_bpr.W, slim_enet.W_sparse], [42.82, 535.4, 52.17])
+    model_hybrid = ModelHybridRecommender([item_cf.w_sparse, slim_bpr.W, slim_enet.W_sparse], [42.82, 535.4, 52.17], fallback_recommender=hybrid_fb)
     model_hybrid.fit(urm_train, top_k=977)
     # USER CF
     user_cf = UserCFKNNRecommender()
@@ -135,6 +136,18 @@ if __name__ == '__main__':
     # ALS
     als = AlternatingLeastSquare()
     als.fit(urm_train, n_factors=896, regularization=99.75, iterations=152)
+
+    hybrid = HybridRecommender([model_hybrid, user_cf, item_cbf, als],
+                               urm_train,
+                               merging_type=MergingTechniques.WEIGHTS,
+                               weights=[0.8064, 2.213, 2.973, 7.069],
+                               fallback_recommender=hybrid_fb)
+
+    '''if EXPORT:
+        export(target_users, hybrid)
+    else:
+        evaluate(hybrid, urm_test)
+    exit()'''
 
     pbounds = {
         'w_mh': (0.5, 1),
@@ -154,54 +167,3 @@ if __name__ == '__main__':
     )
 
     print(optimizer.max)
-
-
-'''
-if __name__ == '__main__':
-    #np.random.seed(42)
-    EXPORT = True
-    urm, icm, ucm, target_users = build_all_matrices()
-    if EXPORT:
-        urm_train = urm.tocsr()
-        urm_test = None
-    else:
-        urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
-    n_users, n_items = urm_train.shape
-
-    top_pop = TopPopRecommender()
-    top_pop.fit(urm_train)
-
-    user_cbf = UserCBFKNNRecommender()
-    user_cbf.fit(urm_train, ucm, top_k=496, shrink=0, normalize=False)
-
-    hybrid_fb = HybridRecommender([top_pop, user_cbf], urm_train, merging_type=MergingTechniques.MEDRANK)
-
-    item_cf = ItemCFKNNRecommender()
-    item_cf.fit(urm_train, top_k=4, shrink=34, normalize=False, similarity='jaccard')
-
-    user_cf = UserCFKNNRecommender()
-    user_cf.fit(urm_train, top_k=593, shrink=4, normalize=False, similarity='tanimoto')
-
-    slim_bpr = SLIM_BPR()
-    slim_bpr.fit(urm_train, epochs=300)
-
-    slim_elasticnet = SLIMElasticNetRecommender()
-    slim_elasticnet.fit(urm_train)
-
-    item_cbf = ItemCBFKNNRecommender()
-    item_cbf.fit(urm_train, icm, 417, 0.3, normalize=True)
-
-    als = AlternatingLeastSquare()
-    als.fit(urm_train, n_factors=497, regularization=9.79, iterations=127)
-
-    hybrid = HybridRecommender([item_cbf, item_cf, slim_bpr, slim_elasticnet, user_cf, als],
-                               urm_train,
-                               merging_type=MergingTechniques.WEIGHTS,
-                               weights=[0.7798, 9.089, 0.032, 9.949, 0.4748, 2.18],
-                               fallback_recommender=hybrid_fb)
-
-    if EXPORT:
-        export(target_users, hybrid)
-    else:
-        evaluate(hybrid, urm_test)
-'''
