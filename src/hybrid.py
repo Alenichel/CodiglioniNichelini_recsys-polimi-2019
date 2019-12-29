@@ -134,7 +134,7 @@ if __name__ == '__main__':
     item_cbf.fit(urm_train, icm, 417, 0.3, normalize=True)
     # ALS
     als = AlternatingLeastSquare()
-    als.fit(urm_train, n_factors=868, regularization=99.75, iterations=152)
+    als.fit(urm_train, n_factors=896, regularization=99.75, iterations=152)
 
     pbounds = {
         'w_mh': (0.5, 1),
@@ -149,7 +149,7 @@ if __name__ == '__main__':
     )
 
     optimizer.maximize(
-        init_points=30,
+        init_points=10,
         n_iter=100,
     )
 
