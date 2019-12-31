@@ -43,6 +43,8 @@ class HybridRecommender:
             self.recommend = self.reccomend_excluding_from_cf
         else:
             raise ValueError('merging_type is not an instance of MergingTechnique')
+        n_users, n_items = urm_train.shape
+        self.popular_items = np.flip(np.argsort(np.array(urm_train.sum(axis=0)).squeeze()), axis=0)[: int(n_items * 0.8)]
 
     def __str__(self):
         return 'Hybrid'
@@ -60,6 +62,8 @@ class HybridRecommender:
             return self.fallback_recommender.recommend(user_id, at=at, exclude_seen=exclude_seen)
         scores = self.get_scores(user_id, exclude_seen)
         ranking = scores.argsort()[::-1]
+        is_relevant = np.in1d(ranking, self.popular_items, assume_unique=True)
+        ranking = ranking[is_relevant]
         return ranking[:at]
 
     def recommend_lists_rr(self, user_id, at=10, exclude_seen=True):
@@ -143,11 +147,11 @@ if __name__ == '__main__':
                                weights=[0.8064, 2.213, 2.973, 7.069],
                                fallback_recommender=hybrid_fb)
 
-    '''if EXPORT:
+    if EXPORT:
         export(target_users, hybrid)
     else:
         evaluate(hybrid, urm_test)
-    exit()'''
+    exit()
 
     pbounds = {
         'w_mh': (0.5, 1),
