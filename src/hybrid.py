@@ -144,7 +144,7 @@ if __name__ == '__main__':
     hybrid = HybridRecommender([model_hybrid, user_cf, item_cbf, als],
                                urm_train,
                                merging_type=MergingTechniques.WEIGHTS,
-                               weights=[0.8064, 2.213, 2.973, 7.069],
+                               weights=[0.4767, 2.199, 2.604, 7.085],
                                fallback_recommender=hybrid_fb)
 
     if EXPORT:
