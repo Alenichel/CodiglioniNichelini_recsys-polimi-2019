@@ -56,14 +56,15 @@ class HybridRecommender:
         scores = scores.sum(axis=0)
         return scores
 
-    def recommend_weights(self, user_id, at=10, exclude_seen=True):
+    def recommend_weights(self, user_id, at=10, exclude_seen=True, remove_least_popular=False):
         user_profile = self.urm_train[user_id]
         if user_profile.nnz == 0 and self.fallback_recommender:
             return self.fallback_recommender.recommend(user_id, at=at, exclude_seen=exclude_seen)
         scores = self.get_scores(user_id, exclude_seen)
         ranking = scores.argsort()[::-1]
-        is_relevant = np.in1d(ranking, self.popular_items, assume_unique=True)
-        ranking = ranking[is_relevant]
+        if remove_least_popular:
+            is_relevant = np.in1d(ranking, self.popular_items, assume_unique=True)
+            ranking = ranking[is_relevant]
         return ranking[:at]
 
     def recommend_lists_rr(self, user_id, at=10, exclude_seen=True):
