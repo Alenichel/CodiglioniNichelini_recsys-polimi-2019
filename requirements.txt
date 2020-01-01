@@ -10,5 +10,5 @@ scikit-optimize
 bayesian-optimization
 pandas
 xgboost
-implicit
+implicit==0.4.0
 lightgbm
