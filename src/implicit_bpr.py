@@ -12,9 +12,9 @@ class BPRRecommender:
         self.urm_train = None
         self.model = None
 
-    def fit(self, urm_train, factors=100, learning_rate=0.1, regularization=0.01, iterations=100, verbose=False):
+    def fit(self, urm_train, factors=100, learning_rate=0.1, regularization=0.01, iterations=100, use_gpu=False, verbose=False):
         self.urm_train = urm_train
-        self.model = BayesianPersonalizedRanking(factors=factors, learning_rate=learning_rate, regularization=regularization, iterations=iterations)
+        self.model = BayesianPersonalizedRanking(factors=factors, learning_rate=learning_rate, regularization=regularization, iterations=iterations, use_gpu=use_gpu)
         self.model.fit(urm_train.tocoo().T, show_progress=verbose)
 
     def recommend(self, user_id, at=10):
