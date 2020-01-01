@@ -12,10 +12,10 @@ class BPRRecommender:
         self.urm_train = None
         self.model = None
 
-    def fit(self, urm_train, factors, learning_rate, regularization, iterations):
+    def fit(self, urm_train, factors=100, learning_rate=0.1, regularization=0.01, iterations=100, verbose=False):
         self.urm_train = urm_train
-        self.model = BayesianPersonalizedRanking(factors=factors, learning_rate=learning_rate, regularization=regularization, iterations=iterations, verify_negative_samples=True)
-        self.model.fit(urm_train.tocoo().T, show_progress=False)
+        self.model = BayesianPersonalizedRanking(factors=factors, learning_rate=learning_rate, regularization=regularization, iterations=iterations)
+        self.model.fit(urm_train.tocoo().T, show_progress=verbose)
 
     def recommend(self, user_id, at=10):
         recommendations = self.model.recommend(user_id, self.urm_train, at)
@@ -35,9 +35,9 @@ def tuner():
         return evaluate(bpr, urm_test, verbose=False)['MAP']
 
     pbounds = {
-        'factors': (1, 500),
+        'factors': (50, 150),
         'learning_rate': (0.001, 0.1),
-        'regularization': (0, 1000),
+        'regularization': (0.001, 0.1),
         'iterations': (1, 300)
     }
 
