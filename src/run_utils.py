@@ -8,6 +8,7 @@ from tqdm import tqdm, trange
 from cython_modules.leave_one_out import train_test_loo_split as __train_test_loo_split_cython
 from csv_utils import load_csv, export_csv
 
+
 class DataFiles:
     TRAIN = 'data/data_train.csv'
     TARGET_USERS_TEST = 'data/data_target_users_test.csv'
@@ -71,19 +72,25 @@ def build_icm(n_items):
     return sps.hstack((price_icm, asset_icm, subclass_icm)).tocsr()
 
 
-def build_ucm(n_users):
-    # AGE
+def build_age_ucm(n_users):
     age_ucm_users, age_ucm_features, age_ucm_values = __load_icm_csv(DataFiles.UCM_AGE, third_type=float)
     n_features = max(age_ucm_features) + 1
     shape = (n_users, n_features)
     age_ucm = sps.csr_matrix((age_ucm_values, (age_ucm_users, age_ucm_features)), shape=shape, dtype=int)
+    return age_ucm
 
-    # REGION
+
+def build_region_ucm(n_users):
     region_ucm_users, region_ucm_features, region_ucm_values = __load_icm_csv(DataFiles.UCM_REGION, third_type=float)
     n_features = max(region_ucm_features) + 1
     shape = (n_users, n_features)
     region_ucm = sps.csr_matrix((region_ucm_values, (region_ucm_users, region_ucm_features)), shape=shape, dtype=int)
+    return region_ucm
 
+
+def build_ucm(n_users):
+    age_ucm = build_age_ucm(n_users)
+    region_ucm = build_region_ucm(n_users)
     return sps.hstack((age_ucm, region_ucm))
 
 

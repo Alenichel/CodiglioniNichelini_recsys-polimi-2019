@@ -2,6 +2,7 @@
 
 
 import numpy as np
+import scipy.sparse as sps
 import lightgbm as lgb
 from run_utils import build_all_matrices, SplitType, evaluate, export
 from sklearn.model_selection import train_test_split
@@ -20,7 +21,11 @@ class LGBMRecommender:
             'num_leaves': 10,
             'min_data': 50,
             'max_depth': 10,
-            'verbose': 0
+            'verbose': -1,
+            'num_thread': 6,
+            'device': 'cpu',
+            'max_bin': 15,
+            'gpu_use_dp': False
         }
         self.urm = None
         self.y = None
@@ -28,9 +33,10 @@ class LGBMRecommender:
 
     def fit(self, urm, ucm):
         urm = urm.astype(float)
-        self.urm = urm
         ucm = ucm.tocsr().astype(float)
-        for item_id in trange(urm.shape[1]):
+        self.urm = urm
+        n_users, n_items = urm.shape
+        for item_id in trange(n_items):
             y = urm[:, item_id].toarray().ravel()
             x = ucm
             x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=42)
@@ -48,6 +54,7 @@ class LGBMRecommender:
                 self.y = y_pred.reshape(y_pred_shape[0], 1)
             else:
                 self.y = np.hstack((self.y, y_pred.reshape(y_pred_shape[0], 1)))
+        self.test = sps.coo_matrix(self.test, shape=(n_users, n_items))
 
     def recommend(self, user_id, at=None, exclude_seen=True):
         user_profile = self.urm[user_id]

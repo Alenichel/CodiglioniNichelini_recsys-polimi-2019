@@ -18,10 +18,17 @@ class XGBoostedRecommender:
 
     def fit(self, train_df, train_labels):
         self.train_df = train_df
+        dtrain = xgb.DMatrix(train_df, label=train_labels)
+        params = {
+            'max_depth': 6,  # the maximum depth of each tree
+            'eta': 0.3,  # step for each iteration
+            'objective': 'rank:map',  # error evaluation for multiclass training
+            'num_class': 2,  # the number of classes
+            #'eval_metric': 'map',  # evaluation metric
+        }
         num_round = 20  # the number of training iterations (number of trees)
-        self.model = xgb.XGBRanker()
-        self.model.fit(train_df, train_labels, group=[len(train_df[train_df['user_id'] == user_id]) for user_id in range(urm.shape[0])], verbose=True)
-        self.preds = self.model.predict(train_df)
+        self.model = xgb.train(params, dtrain, num_round, verbose_eval=2, evals=[(dtrain, 'train')])
+        self.preds = self.model.predict(dtrain)
 
     def recommend(self, user_id, at=None, exclude_seen=True):
         user_interactions = self.train_df[self.train_df['user_id'] == user_id]
