@@ -14,7 +14,7 @@ class MFALSRecommender:
         self.urm_train = None
         self.model = None
 
-    def fit(self, urm_train, factors=100, regularization=0.01, iterations=15, use_gpu=False, verbose=False):
+    def fit(self, urm_train, factors=100, regularization=0.01, iterations=15, use_gpu=False, verbose=True):
         self.urm_train = urm_train
         self.model = AlternatingLeastSquares(factors=factors, regularization=regularization, iterations=iterations, use_gpu=use_gpu)
         self.model.fit(urm_train.tocoo().T * 24, show_progress=verbose)
@@ -32,7 +32,7 @@ def als_tuner():
         factors = int(factors)
         iterations = int(iterations)
         rec = MFALSRecommender()
-        rec.fit(urm_train, factors=factors, regularization=regularization, iterations=iterations)
+        rec.fit(urm_train, factors=factors, regularization=regularization, iterations=iterations, verbose=False)
         return evaluate(rec, urm_test, verbose=False)['MAP']
 
     pbounds = {
@@ -54,7 +54,7 @@ class MFBPRRecommender:
         self.urm_train = None
         self.model = None
 
-    def fit(self, urm_train, factors=100, learning_rate=0.1, regularization=0.01, iterations=100, use_gpu=False, verbose=False):
+    def fit(self, urm_train, factors=100, learning_rate=0.1, regularization=0.01, iterations=100, use_gpu=False, verbose=True):
         self.urm_train = urm_train
         self.model = BayesianPersonalizedRanking(factors=factors, learning_rate=learning_rate, regularization=regularization, iterations=iterations, use_gpu=use_gpu)
         self.model.fit(urm_train.tocoo().T, show_progress=verbose)
@@ -72,7 +72,7 @@ def bpr_tuner():
         factors = int(factors)
         iterations = int(iterations)
         bpr = MFBPRRecommender()
-        bpr.fit(urm_train, factors=factors, regularization=regularization, iterations=iterations)
+        bpr.fit(urm_train, factors=factors, regularization=regularization, iterations=iterations, verbose=False)
         return evaluate(bpr, urm_test, verbose=False)['MAP']
 
     pbounds = {
@@ -94,7 +94,7 @@ class LMFRecommender:
         self.urm_train = None
         self.model = None
 
-    def fit(self, urm_train, factors=30, learning_rate=1.0, regularization=0.6, iterations=30, verbose=False):
+    def fit(self, urm_train, factors=30, learning_rate=1.0, regularization=0.6, iterations=30, verbose=True):
         self.urm_train = urm_train
         self.model = LogisticMatrixFactorization(factors=factors, learning_rate=learning_rate, regularization=regularization, iterations=iterations)
         self.model.fit(urm_train.tocoo().T, show_progress=verbose)
@@ -112,7 +112,7 @@ def lmf_tuner():
         factors = int(factors)
         iterations = int(iterations)
         rec = LMFRecommender()
-        rec.fit(urm_train, factors=factors, regularization=regularization, iterations=iterations)
+        rec.fit(urm_train, factors=factors, regularization=regularization, iterations=iterations, verbose=False)
         return evaluate(rec, urm_test, verbose=False)['MAP']
 
     pbounds = {
@@ -139,8 +139,8 @@ if __name__ == '__main__':
     else:
         urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
 
-    als_tuner()
-    exit()
+    '''bpr_tuner()
+    exit()'''
 
     rec = MFBPRRecommender()
     rec.fit(urm_train)
