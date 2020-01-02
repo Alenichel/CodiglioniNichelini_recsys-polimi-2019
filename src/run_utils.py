@@ -8,6 +8,7 @@ from tqdm import tqdm, trange
 from cython_modules.leave_one_out import train_test_loo_split as __train_test_loo_split_cython
 from csv_utils import load_csv, export_csv
 
+
 class DataFiles:
     TRAIN = 'data/data_train.csv'
     TARGET_USERS_TEST = 'data/data_target_users_test.csv'
