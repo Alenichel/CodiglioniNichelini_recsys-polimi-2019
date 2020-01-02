@@ -19,7 +19,8 @@ class LGBMRecommender:
             'sub_feature': 0.5,
             'num_leaves': 10,
             'min_data': 50,
-            'max_depth': 10
+            'max_depth': 10,
+            'verbose': 0
         }
         self.urm = None
         self.y = None
@@ -37,16 +38,16 @@ class LGBMRecommender:
             if self.test is None:
                 self.test = y_test.reshape(y_test_shape[0], 1)
             else:
-                self.test = np.hstack(self.test, y_test.reshape(y_test_shape[0], 1))
+                self.test = np.hstack((self.test, y_test.reshape(y_test_shape[0], 1)))
             d_train = lgb.Dataset(x_train, label=y_train)
             #d_test = d_train.create_valid(d_train)
-            clf = lgb.train(self.params, d_train, 100)
+            clf = lgb.train(self.params, d_train, 100, verbose_eval=False)
             y_pred = clf.predict(x_test)
             y_pred_shape = y_pred.shape
             if self.y is None:
                 self.y = y_pred.reshape(y_pred_shape[0], 1)
             else:
-                self.y = np.hstack(self.y, y_pred.reshape(y_pred_shape[0], 1))
+                self.y = np.hstack((self.y, y_pred.reshape(y_pred_shape[0], 1)))
 
     def recommend(self, user_id, at=None, exclude_seen=True):
         user_profile = self.urm[user_id]
