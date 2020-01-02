@@ -33,9 +33,10 @@ class LGBMRecommender:
 
     def fit(self, urm, ucm):
         urm = urm.astype(float)
-        self.urm = urm
         ucm = ucm.tocsr().astype(float)
-        for item_id in trange(urm.shape[1]):
+        self.urm = urm
+        n_users, n_items = urm.shape
+        for item_id in trange(n_items):
             y = urm[:, item_id].toarray().ravel()
             x = ucm
             x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=42)
@@ -53,7 +54,7 @@ class LGBMRecommender:
                 self.y = y_pred.reshape(y_pred_shape[0], 1)
             else:
                 self.y = np.hstack((self.y, y_pred.reshape(y_pred_shape[0], 1)))
-        self.urm = sps.csr_matrix(self.urm, shape=self.urm.shape)
+        self.test = sps.coo_matrix(self.test, shape=(n_users, n_items))
 
     def recommend(self, user_id, at=None, exclude_seen=True):
         user_profile = self.urm[user_id]
