@@ -2,6 +2,7 @@
 
 
 import numpy as np
+import scipy.sparse as sps
 import lightgbm as lgb
 from run_utils import build_all_matrices, SplitType, evaluate, export
 from sklearn.model_selection import train_test_split
@@ -52,7 +53,7 @@ class LGBMRecommender:
                 self.y = y_pred.reshape(y_pred_shape[0], 1)
             else:
                 self.y = np.hstack((self.y, y_pred.reshape(y_pred_shape[0], 1)))
-        self.urm = self.urm.tocsr()
+        self.urm = sps.csr_matrix(self.urm, shape=self.urm.shape)
 
     def recommend(self, user_id, at=None, exclude_seen=True):
         user_profile = self.urm[user_id]
