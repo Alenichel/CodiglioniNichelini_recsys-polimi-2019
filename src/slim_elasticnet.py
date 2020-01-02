@@ -39,7 +39,6 @@ class SLIMElasticNetRecommender:
         if cache:
             if exists(cache_file):
                 print('Using cached model')
-                data = np.load(cache_file, allow_pickle=True)
                 self.W_sparse = sps.load_npz(cache_file)
                 return
             else:

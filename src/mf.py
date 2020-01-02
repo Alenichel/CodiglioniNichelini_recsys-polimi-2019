@@ -43,8 +43,8 @@ class AlternatingLeastSquare:
         # Get the user and item vectors from our trained model
         self.user_factors = model.user_factors
         self.item_factors = model.item_factors
-        data = np.array([self.user_factors, self.item_factors])
         if cache:
+            data = np.array([self.user_factors, self.item_factors])
             np.save(cache_file, data)
             print('Model cached to file {cache_file}'.format(cache_file=cache_file))
 

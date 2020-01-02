@@ -4,8 +4,8 @@
 import numpy as np
 import scipy.sparse as sps
 import lightgbm as lgb
-from run_utils import build_all_matrices, SplitType, evaluate, export
-from sklearn.model_selection import train_test_split
+from os.path import exists
+from run_utils import build_all_matrices, train_test_split, SplitType, evaluate, export
 from tqdm import trange
 
 
@@ -22,42 +22,47 @@ class LGBMRecommender:
             'min_data': 50,
             'max_depth': 10,
             'verbose': -1,
-            'num_thread': 6,
+            #'num_thread': 6,
             'device': 'cpu',
             'max_bin': 15,
             'gpu_use_dp': False
         }
-        self.urm = None
-        self.y = None
-        self.test = None
+        self.y_pred = None
 
-    def fit(self, urm, ucm):
-        urm = urm.astype(float)
-        ucm = ucm.tocsr().astype(float)
-        self.urm = urm
+    @staticmethod
+    def get_cache_filename():
+        seed = np.random.get_state()[1][0]
+        return '{seed}'.format(seed=seed)
+
+    def fit(self, urm_train, ucm_train, ucm_test, cache=True):
+        cache_file = 'models/lgbm/' + LGBMRecommender.get_cache_filename() + '.npy'
+        if cache:
+            if exists(cache_file):
+                print('Using cached model')
+                self.y_pred = np.load(cache_file, allow_pickle=True)
+                return
+            else:
+                print('{cache_file} not found'.format(cache_file=cache_file))
+        urm_train = urm_train.astype(float)
+        x_train = ucm_train.tocsr().astype(float)
+        x_test = ucm_test.tocsr().astype(float)
         n_users, n_items = urm.shape
         for item_id in trange(n_items):
-            y = urm[:, item_id].toarray().ravel()
-            x = ucm
-            x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=42)
-            y_test_shape = y_test.shape
-            if self.test is None:
-                self.test = y_test.reshape(y_test_shape[0], 1)
-            else:
-                self.test = np.hstack((self.test, y_test.reshape(y_test_shape[0], 1)))
+            y_train = urm_train[:, item_id].toarray().ravel()
             d_train = lgb.Dataset(x_train, label=y_train)
-            #d_test = d_train.create_valid(d_train)
             clf = lgb.train(self.params, d_train, 100, verbose_eval=False)
             y_pred = clf.predict(x_test)
             y_pred_shape = y_pred.shape
-            if self.y is None:
-                self.y = y_pred.reshape(y_pred_shape[0], 1)
+            if self.y_pred is None:
+                self.y_pred = y_pred.reshape(y_pred_shape[0], 1)
             else:
-                self.y = np.hstack((self.y, y_pred.reshape(y_pred_shape[0], 1)))
-        self.test = sps.coo_matrix(self.test, shape=(n_users, n_items))
+                self.y_pred = np.hstack((self.y_pred, y_pred.reshape(y_pred_shape[0], 1)))
+        if cache:
+            np.save(cache_file, self.y_pred)
+            print('Model cached to file {cache_file}'.format(cache_file=cache_file))
 
     def recommend(self, user_id, at=None, exclude_seen=True):
-        user_profile = self.urm[user_id]
+        user_profile = self.y_pred[user_id]
         ranking = user_profile.argsort()[::-1]
         return ranking[:at]
 
@@ -66,9 +71,10 @@ if __name__ == '__main__':
     EXPORT = False
     np.random.seed(42)
     urm, icm, ucm, target_users = build_all_matrices()
+    urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
+    ucm_train, ucm_test = train_test_split(ucm, SplitType.PROBABILISTIC)
 
     rec = LGBMRecommender()
-    rec.fit(urm, ucm)
+    rec.fit(urm_train, ucm_train, ucm_test)
 
-    evaluate(rec, rec.test)
-
+    evaluate(rec, urm_test)
