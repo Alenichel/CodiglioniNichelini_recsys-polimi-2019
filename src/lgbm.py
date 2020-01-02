@@ -20,7 +20,7 @@ class LGBMRecommender:
             'num_leaves': 10,
             'min_data': 50,
             'max_depth': 10,
-            'verbose': 0
+            'verbose': -1
         }
         self.urm = None
         self.y = None
