@@ -24,6 +24,15 @@ def MAP(is_relevant, relevant_items):
     map_score = np.sum(p_at_k) / np.min([relevant_items.shape[0], is_relevant.shape[0]])
     return map_score
 
+def evaluate_by_cluster(recommender_object, urm_test, clusters, at=10, excluded_users=[], verbose=True):
+    for n in range(len(clusters.keys())):
+        to_exclude = list()
+        for m in clusters.keys():
+            if m != str(n):
+                to_exclude += clusters[m]
+        to_exclude += excluded_users
+        evaluate_algorithm(recommender_object, urm_test, at=at, excluded_users=to_exclude, verbose=verbose)
+
 
 def evaluate_algorithm(recommender_object, urm_test, at=10, excluded_users=[], verbose=True):
     cumulative_precision = 0.0                              

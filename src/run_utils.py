@@ -16,6 +16,7 @@ class DataFiles:
     ICM_SUBCLASS = 'data/data_ICM_sub_class.csv'
     UCM_AGE = 'data/data_UCM_age.csv'
     UCM_REGION = 'data/data_UCM_region.csv'
+    CLUSTERS = 'data/user_clustered.csv'
 
 
 class SplitType(Enum):
@@ -30,6 +31,18 @@ def build_urm():
     users, items, ratings = map(np.array, zip(*urm_data))
     return sps.csr_matrix((ratings, (users, items)))
 
+
+def clusterise():
+    clusters = dict()
+    for n in range(4):
+        clusters[str(n)] = list()
+    data = load_csv(DataFiles.CLUSTERS)
+    for line in data:
+        n = line[0]
+        user_id = line[1]
+        cluster = line[2]
+        clusters[str(cluster)] += [user_id]
+    return clusters
 
 def build_icm(n_items):
     # PRICE
@@ -165,3 +178,17 @@ def __encode_values(values):
     le = LabelEncoder()
     le.fit(values)
     return le.transform(values)
+
+if __name__ == '__main__':
+    from evaluation import evaluate_by_cluster
+    from cf import ItemCFKNNRecommender
+    from basic_recommenders import TopPopRecommender
+
+    np.random.seed(42)
+    urm, icm, ucm, target_users = build_all_matrices()
+    urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
+    top_pop = TopPopRecommender()
+    top_pop.fit(urm_train)
+    cf = ItemCFKNNRecommender(fallback_recommender=top_pop)
+    cf.fit(urm_train, top_k=690, shrink=66, normalize=False, similarity='tanimoto')
+    evaluate_by_cluster(cf, urm_test, clusterise())
