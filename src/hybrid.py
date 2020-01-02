@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 
 import numpy as np
-from run_utils import build_all_matrices, train_test_split, evaluate, export, SplitType
+from run_utils import build_all_matrices, build_age_ucm, train_test_split, evaluate, export, SplitType
 from list_merge import round_robin_list_merger, frequency_list_merger, medrank
 from cf import ItemCFKNNRecommender, UserCFKNNRecommender
 from cbf import ItemCBFKNNRecommender, UserCBFKNNRecommender
+from ucm_top_pop import TopPopUCM
 from cython_modules.SLIM_BPR.SLIM_BPR_CYTHON import SLIM_BPR
 from basic_recommenders import TopPopRecommender
 from enum import Enum
@@ -106,6 +107,7 @@ if __name__ == '__main__':
     np.random.seed(42)
     EXPORT = False
     urm, icm, ucm, target_users = build_all_matrices()
+    age_ucm = build_age_ucm(urm.shape[1])
     if EXPORT:
         urm_train = urm.tocsr()
         urm_test = None
@@ -113,8 +115,8 @@ if __name__ == '__main__':
         urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
 
     # TOP-POP
-    top_pop = TopPopRecommender()
-    top_pop.fit(urm_train)
+    top_pop = TopPopUCM()
+    top_pop.fit(urm_train, age_ucm)
     # USER CBF
     user_cbf = UserCBFKNNRecommender()
     user_cbf.fit(urm_train, ucm, top_k=496, shrink=0, normalize=False)

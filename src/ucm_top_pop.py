@@ -1,0 +1,62 @@
+#!/usr/bin/env python3
+
+import numpy as np
+from tqdm import trange
+from run_utils import build_all_matrices, build_age_ucm, build_region_ucm, train_test_split, SplitType, export, evaluate
+from basic_recommenders import TopPopRecommender
+
+
+class TopPopUCM:
+
+    def __init__(self):
+        self.urm_train = None
+        self.ucm = None
+        self.recommenders = dict()
+        self.feature_for_user = dict()
+        self.std_top_pop = None
+
+    def __users_for_feature(self, feature):
+        users_mask = self.ucm[:, feature] == 1
+        users_in_feature = users_mask.indices
+        return users_in_feature
+
+    def fit(self, urm_train, ucm):
+        self.urm_train = urm_train
+        self.ucm = ucm.tocsc()
+        self.std_top_pop = TopPopRecommender()
+        self.std_top_pop.fit(urm_train)
+        for feature in trange(self.ucm.shape[1]):
+            users = self.__users_for_feature(feature)
+            for user_id in users:
+                self.feature_for_user[user_id] = feature
+            filtered_urm = self.urm_train[users, :]
+            top_pop = TopPopRecommender()
+            top_pop.fit(filtered_urm)
+            self.recommenders[feature] = top_pop
+
+    def recommend(self, user_id, at=None, exclude_seen=True):
+        try:
+            feature = self.feature_for_user[user_id]
+            return self.recommenders[feature].recommend(user_id, at, exclude_seen)
+        except (KeyError, IndexError):
+            return self.std_top_pop.recommend(user_id, at, exclude_seen)
+
+
+if __name__ == '__main__':
+    np.random.seed(42)
+    EXPORT = False
+    urm, icm, _, target_users = build_all_matrices()
+    ucm = build_age_ucm(urm.shape[0])
+    if EXPORT:
+        urm_train = urm.tocsr()
+        urm_test = None
+    else:
+        urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
+    rec = TopPopUCM()
+    rec.fit(urm_train, ucm)
+    if EXPORT:
+        export(target_users, rec)
+    else:
+        profile_lengths = np.ediff1d(urm_train.indptr)
+        warm_users = np.where(profile_lengths != 0)[0]
+        evaluate(rec, urm_test, excluded_users=warm_users)
