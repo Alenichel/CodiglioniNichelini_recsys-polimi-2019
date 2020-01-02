@@ -4,6 +4,7 @@ import numpy as np
 from tqdm import trange
 from run_utils import build_all_matrices, build_age_ucm, build_region_ucm, train_test_split, SplitType, export, evaluate
 from basic_recommenders import TopPopRecommender
+from cbf import UserCBFKNNRecommender
 
 
 class TopPopUCM:
@@ -45,18 +46,25 @@ class TopPopUCM:
 if __name__ == '__main__':
     np.random.seed(42)
     EXPORT = False
-    urm, icm, _, target_users = build_all_matrices()
-    ucm = build_age_ucm(urm.shape[0])
+    urm, icm, ucm, target_users = build_all_matrices()
+    age_ucm = build_age_ucm(urm.shape[0])
     if EXPORT:
         urm_train = urm.tocsr()
         urm_test = None
     else:
         urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
-    rec = TopPopUCM()
-    rec.fit(urm_train, ucm)
+    # TOP-POP
+    top_pop = TopPopUCM()
+    top_pop.fit(urm_train, age_ucm)
+    # USER CBF
+    user_cbf = UserCBFKNNRecommender()
+    user_cbf.fit(urm_train, ucm, top_k=496, shrink=0, normalize=False)
+    # HYBRID FALLBACK
+    from hybrid import HybridRecommender, MergingTechniques
+    hybrid_fb = HybridRecommender([top_pop, user_cbf], urm_train, merging_type=MergingTechniques.MEDRANK)
     if EXPORT:
-        export(target_users, rec)
+        export(target_users, hybrid_fb)
     else:
         profile_lengths = np.ediff1d(urm_train.indptr)
         warm_users = np.where(profile_lengths != 0)[0]
-        evaluate(rec, urm_test, excluded_users=warm_users)
+        evaluate(hybrid_fb, urm_test, excluded_users=warm_users)

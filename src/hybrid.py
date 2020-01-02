@@ -107,7 +107,7 @@ if __name__ == '__main__':
     np.random.seed(42)
     EXPORT = False
     urm, icm, ucm, target_users = build_all_matrices()
-    age_ucm = build_age_ucm(urm.shape[1])
+    age_ucm = build_age_ucm(urm.shape[0])
     if EXPORT:
         urm_train = urm.tocsr()
         urm_test = None
