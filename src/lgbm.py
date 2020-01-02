@@ -20,7 +20,11 @@ class LGBMRecommender:
             'num_leaves': 10,
             'min_data': 50,
             'max_depth': 10,
-            'verbose': -1
+            'verbose': -1,
+            'num_thread': 6,
+            'device': 'cpu',
+            'max_bin': 15,
+            'gpu_use_dp': False
         }
         self.urm = None
         self.y = None
@@ -48,6 +52,7 @@ class LGBMRecommender:
                 self.y = y_pred.reshape(y_pred_shape[0], 1)
             else:
                 self.y = np.hstack((self.y, y_pred.reshape(y_pred_shape[0], 1)))
+        self.urm = self.urm.tocsr()
 
     def recommend(self, user_id, at=None, exclude_seen=True):
         user_profile = self.urm[user_id]
