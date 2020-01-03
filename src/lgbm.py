@@ -2,9 +2,8 @@
 
 
 import numpy as np
-import scipy.sparse as sps
 import lightgbm as lgb
-from os.path import exists
+import os
 from run_utils import build_all_matrices, train_test_split, SplitType, evaluate, export
 from tqdm import trange
 
@@ -35,9 +34,10 @@ class LGBMRecommender:
         return '{seed}'.format(seed=seed)
 
     def fit(self, urm_train, ucm_train, ucm_test, cache=True):
-        cache_file = 'models/lgbm/' + LGBMRecommender.get_cache_filename() + '.npy'
+        cache_dir = 'models/lgbm/'
+        cache_file = cache_dir + LGBMRecommender.get_cache_filename() + '.npy'
         if cache:
-            if exists(cache_file):
+            if os.path.exists(cache_file):
                 print('Using cached model')
                 self.y_pred = np.load(cache_file, allow_pickle=True)
                 return
@@ -58,6 +58,8 @@ class LGBMRecommender:
             else:
                 self.y_pred = np.hstack((self.y_pred, y_pred.reshape(y_pred_shape[0], 1)))
         if cache:
+            if not os.path.exists(cache_dir):
+                os.makedirs(cache_dir)
             np.save(cache_file, self.y_pred)
             print('Model cached to file {cache_file}'.format(cache_file=cache_file))
 
