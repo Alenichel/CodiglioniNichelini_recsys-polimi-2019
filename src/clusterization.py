@@ -8,7 +8,6 @@ from run_utils import DataFiles
 
 
 def get_clusters(n_cluster=10, max_iter=300):
-    np.random.seed(42)
     age_data = pd.read_csv(DataFiles.UCM_AGE)
     age_data = age_data.drop(['data'], axis=1)
     age_data = age_data.rename(columns={'row': 'user_id', 'col': 'age'})

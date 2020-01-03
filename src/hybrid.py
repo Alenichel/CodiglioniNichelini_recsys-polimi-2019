@@ -16,6 +16,7 @@ from bayes_opt import BayesianOptimization
 from clusterization import get_clusters
 from clusterized_top_pop import ClusterizedTopPop
 
+
 class MergingTechniques(Enum):
     WEIGHTS = 1
     RR = 2
@@ -101,22 +102,31 @@ def to_optimize(w_mh, w_ucf, w_icbf, w_als):
                                merging_type=MergingTechniques.WEIGHTS,
                                weights=[w_mh, w_ucf, w_icbf, w_als],
                                fallback_recommender=hybrid_fb)
+    np.mean([evaluate(hybrid, urm_test1, verbose=False)['MAP'],
+             evaluate(hybrid, urm_test2, verbose=False)['MAP'],
+             evaluate(hybrid, urm_test3, verbose=False)['MAP'],
+             evaluate(hybrid, urm_test4, verbose=False)['MAP'],
+             evaluate(hybrid, urm_test5, verbose=False)['MAP']])
     return evaluate(hybrid, urm_test, verbose=False)['MAP']
 
 
 if __name__ == '__main__':
-    #np.random.seed(42)
-    EXPORT = True
+    np.random.seed(42)
+    EXPORT = False
     urm, icm, ucm, target_users = build_all_matrices()
     age_ucm = build_age_ucm(urm.shape[0])
     if EXPORT:
         urm_train = urm.tocsr()
         urm_test = None
     else:
-        urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
+        urm_train, urm_test1 = train_test_split(urm, SplitType.PROBABILISTIC)
+        urm_train, urm_test2 = train_test_split(urm_train, SplitType.PROBABILISTIC)
+        urm_train, urm_test3 = train_test_split(urm_train, SplitType.PROBABILISTIC)
+        urm_train, urm_test4 = train_test_split(urm_train, SplitType.PROBABILISTIC)
+        urm_train, urm_test5 = train_test_split(urm_train, SplitType.PROBABILISTIC)
 
     # TOP-POP
-    clusters = get_clusters()
+    clusters = get_clusters(n_cluster=4)
     top_pop = ClusterizedTopPop()
     top_pop.fit(urm_train, clusters)
     # USER CBF
@@ -146,7 +156,7 @@ if __name__ == '__main__':
     als = AlternatingLeastSquare()
     als.fit(urm_train, n_factors=896, regularization=99.75, iterations=152, cache=not EXPORT)
 
-    hybrid = HybridRecommender([model_hybrid, user_cf, item_cbf, als],
+    '''hybrid = HybridRecommender([model_hybrid, user_cf, item_cbf, als],
                                urm_train,
                                merging_type=MergingTechniques.WEIGHTS,
                                weights=[0.4767, 2.199, 2.604, 7.085],
@@ -156,7 +166,7 @@ if __name__ == '__main__':
         export(target_users, hybrid)
     else:
         evaluate(hybrid, urm_test)
-    exit()
+    exit()'''
 
     pbounds = {
         'w_mh': (0.5, 1),
@@ -171,8 +181,8 @@ if __name__ == '__main__':
     )
 
     optimizer.maximize(
-        init_points=10,
-        n_iter=100,
+        init_points=50,
+        n_iter=150,
     )
 
     print(optimizer.max)
