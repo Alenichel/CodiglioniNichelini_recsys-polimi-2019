@@ -114,9 +114,11 @@ if __name__ == '__main__':
         urm_train = urm.tocsr()
         urm_test = None
     else:
-        urm_train, urm_test1 = train_test_split(urm, SplitType.PROBABILISTIC)
-        urm_train, urm_test2 = train_test_split(urm_train, SplitType.PROBABILISTIC)
-        urm_train, urm_test3 = train_test_split(urm_train, SplitType.PROBABILISTIC)
+        # The splitting are done so that each test set is 10% if the original data set
+        # and the final train set is 70% of the original data set
+        urm_train, urm_test1 = train_test_split(urm, SplitType.PROBABILISTIC, split=9/10)
+        urm_train, urm_test2 = train_test_split(urm_train, SplitType.PROBABILISTIC, split=8/9)
+        urm_train, urm_test3 = train_test_split(urm_train, SplitType.PROBABILISTIC, split=7/8)
 
     # TOP-POP
     clusters = get_clusters(n_cluster=4)
