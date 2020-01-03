@@ -32,7 +32,7 @@ if __name__ == '__main__':
     clusters = {cluster: list() for cluster in range(max(pred_y) + 1)}
     for i in range(len(data)):
         cluster_id = pred_y[i]
-        user_id = data['user_id'][i]
+        user_id = data.user_id.iloc[i]
         clusters[cluster_id].append(user_id)
     '''kmeans = KMeans(n_clusters=n_clusters, init='k-means++', max_iter=300, n_init=10)
     pred_y = kmeans.fit_predict(X)
