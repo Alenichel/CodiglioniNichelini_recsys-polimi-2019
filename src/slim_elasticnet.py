@@ -2,7 +2,7 @@
 
 import numpy as np
 import scipy.sparse as sps
-from os.path import exists
+import os
 from sklearn.linear_model import ElasticNet
 from sklearn.utils.testing import ignore_warnings
 from sklearn.exceptions import ConvergenceWarning
@@ -35,9 +35,10 @@ class SLIMElasticNetRecommender:
         else:
             print("SLIM_ElasticNet: l1_penalty+l2_penalty cannot be equal to zero, setting the ratio l1/(l1+l2) to 1.0")
             l1_ratio = 1.0
-        cache_file = 'models/slim_elasticnet/' + SLIMElasticNetRecommender.get_cache_filename(l1_penalty, l2_penalty, topK) + '.npz'
+        cache_dir = 'models/slim_elasticnet/'
+        cache_file = cache_dir + SLIMElasticNetRecommender.get_cache_filename(l1_penalty, l2_penalty, topK) + '.npz'
         if cache:
-            if exists(cache_file):
+            if os.path.exists(cache_file):
                 print('Using cached model')
                 self.W_sparse = sps.load_npz(cache_file)
                 return
@@ -113,6 +114,8 @@ class SLIMElasticNetRecommender:
         self.W_sparse = sps.csr_matrix((values[:numCells], (rows[:numCells], cols[:numCells])),
                                        shape=(n_items, n_items), dtype=np.float32)
         if cache:
+            if not os.path.exists(cache_dir):
+                os.makedirs(cache_dir)
             sps.save_npz(cache_file, self.W_sparse)
             print('Model cached to file {cache_file}'.format(cache_file=cache_file))
 

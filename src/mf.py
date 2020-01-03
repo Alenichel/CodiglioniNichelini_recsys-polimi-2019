@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import numpy as np
-from os.path import exists
+import os
 import implicit
 from run_utils import build_all_matrices, train_test_split, SplitType, export, evaluate
 from bayes_opt import BayesianOptimization
@@ -22,9 +22,10 @@ class AlternatingLeastSquare:
 
     def fit(self, urm, n_factors=300, regularization=0.15, iterations=30, alpha=24, verbose=True, cache=True):
         self.urm = urm
-        cache_file = 'models/als/' + AlternatingLeastSquare.get_cache_filename(n_factors, regularization, iterations, alpha) + '.npy'
+        cache_dir = 'models/als/'
+        cache_file = cache_dir + AlternatingLeastSquare.get_cache_filename(n_factors, regularization, iterations, alpha) + '.npy'
         if cache:
-            if exists(cache_file):
+            if os.path.exists(cache_file):
                 if verbose:
                     print('Using cached model')
                 data = np.load(cache_file, allow_pickle=True)
@@ -44,6 +45,8 @@ class AlternatingLeastSquare:
         self.user_factors = model.user_factors
         self.item_factors = model.item_factors
         if cache:
+            if not os.path.exists(cache_dir):
+                os.makedirs(cache_dir)
             data = np.array([self.user_factors, self.item_factors])
             np.save(cache_file, data)
             print('Model cached to file {cache_file}'.format(cache_file=cache_file))
