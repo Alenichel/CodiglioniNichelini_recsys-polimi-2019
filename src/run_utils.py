@@ -33,17 +33,21 @@ def build_urm():
     return sps.csr_matrix((ratings, (users, items)))
 
 
-def clusterise():
-    clusters = dict()
-    for n in range(4):
-        clusters[str(n)] = list()
+def clusterize():
     data = load_csv(DataFiles.CLUSTERS)
-    for line in data:
-        n = line[0]
-        user_id = line[1]
-        cluster = line[2]
-        clusters[str(cluster)] += [user_id]
+    data = [[int(row[i]) for i in range(len(row))] for row in data]
+    _, user_ids, cluster_ids = map(list, zip(*data))
+    assert len(user_ids) == len(cluster_ids)
+    data_len = len(user_ids)
+    clusters = dict()
+    for n in range(max(cluster_ids) + 1):
+        clusters[n] = list()
+    for i in range(data_len):
+        user_id = user_ids[i]
+        cluster_id = cluster_ids[i]
+        clusters[cluster_id].append(user_id)
     return clusters
+
 
 def build_icm(n_items):
     # PRICE
@@ -185,6 +189,7 @@ def __encode_values(values):
     le = LabelEncoder()
     le.fit(values)
     return le.transform(values)
+
 
 if __name__ == '__main__':
     from evaluation import evaluate_by_cluster

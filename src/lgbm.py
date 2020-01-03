@@ -47,16 +47,13 @@ class LGBMRecommender:
         x_train = ucm_train.tocsr().astype(float)
         x_test = ucm_test.tocsr().astype(float)
         n_users, n_items = urm.shape
+        self.y_pred = np.zeros(urm.shape, dtype=float)
         for item_id in trange(n_items):
             y_train = urm_train[:, item_id].toarray().ravel()
             d_train = lgb.Dataset(x_train, label=y_train)
             clf = lgb.train(self.params, d_train, 100, verbose_eval=False)
-            y_pred = clf.predict(x_test)
-            y_pred_shape = y_pred.shape
-            if self.y_pred is None:
-                self.y_pred = y_pred.reshape(y_pred_shape[0], 1)
-            else:
-                self.y_pred = np.hstack((self.y_pred, y_pred.reshape(y_pred_shape[0], 1)))
+            y_pred = clf.predict(x_test).reshape(n_users)
+            self.y_pred[:, item_id] = y_pred
         if cache:
             if not os.path.exists(cache_dir):
                 os.makedirs(cache_dir)
@@ -73,8 +70,8 @@ if __name__ == '__main__':
     EXPORT = False
     np.random.seed(42)
     urm, icm, ucm, target_users = build_all_matrices()
-    urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
-    ucm_train, ucm_test = train_test_split(ucm, SplitType.PROBABILISTIC)
+    urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC, split=0.2)
+    ucm_train, ucm_test = train_test_split(ucm, SplitType.PROBABILISTIC, split=0.2)
 
     rec = LGBMRecommender()
     rec.fit(urm_train, ucm_train, ucm_test)
