@@ -1,60 +1,50 @@
 #!/usr/bin/env python3
 
 import numpy as np
-from run_utils import build_all_matrices, build_age_ucm, build_region_ucm, train_test_split, SplitType, export, evaluate
+from tqdm import trange
+from run_utils import build_all_matrices, clusterize, train_test_split, SplitType, export, evaluate
 from basic_recommenders import TopPopRecommender
 from cbf import UserCBFKNNRecommender
 
 
-class TopPopUCM:
+class ClusterizedTopPop:
 
     def __init__(self):
         self.urm_train = None
         self.ucm = None
         self.recommenders = dict()
-        self.feature_for_user = dict()
+        self.cluster_for_user = dict()
         self.std_top_pop = None
 
-    def __users_for_feature(self, feature):
-        users_mask = self.ucm[:, feature] == 1
-        users_in_feature = users_mask.indices
-        return users_in_feature
-
-    def fit(self, urm_train, ucm):
+    def fit(self, urm_train):
         self.urm_train = urm_train
-        self.ucm = ucm.tocsc()
-        self.std_top_pop = TopPopRecommender()
-        self.std_top_pop.fit(urm_train)
-        for feature in range(self.ucm.shape[1]):
-            users = self.__users_for_feature(feature)
+        clusters = clusterize()
+        for cluster in clusters:
+            users = clusters[cluster]
             for user_id in users:
-                self.feature_for_user[user_id] = feature
+                self.cluster_for_user[user_id] = cluster
             filtered_urm = self.urm_train[users, :]
             top_pop = TopPopRecommender()
             top_pop.fit(filtered_urm)
-            self.recommenders[feature] = top_pop
+            self.recommenders[cluster] = top_pop
 
     def recommend(self, user_id, at=None, exclude_seen=True):
-        try:
-            feature = self.feature_for_user[user_id]
-            return self.recommenders[feature].recommend(user_id, at, False)
-        except (KeyError, IndexError):
-            return self.std_top_pop.recommend(user_id, at, exclude_seen)
+        cluster = self.cluster_for_user[user_id]
+        return self.recommenders[cluster].recommend(user_id, at, False)
 
 
 if __name__ == '__main__':
     np.random.seed(42)
     EXPORT = False
     urm, icm, ucm, target_users = build_all_matrices()
-    age_ucm = build_age_ucm(urm.shape[0])
     if EXPORT:
         urm_train = urm.tocsr()
         urm_test = None
     else:
         urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
     # TOP-POP
-    top_pop = TopPopUCM()
-    top_pop.fit(urm_train, age_ucm)
+    top_pop = ClusterizedTopPop()
+    top_pop.fit(urm_train)
     # USER CBF
     user_cbf = UserCBFKNNRecommender()
     user_cbf.fit(urm_train, ucm, top_k=496, shrink=0, normalize=False)

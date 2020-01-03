@@ -70,8 +70,8 @@ if __name__ == '__main__':
     EXPORT = False
     np.random.seed(42)
     urm, icm, ucm, target_users = build_all_matrices()
-    urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC, split=0.2)
-    ucm_train, ucm_test = train_test_split(ucm, SplitType.PROBABILISTIC, split=0.2)
+    urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
+    ucm_train, ucm_test = train_test_split(ucm, SplitType.PROBABILISTIC)
 
     rec = LGBMRecommender()
     rec.fit(urm_train, ucm_train, ucm_test)
