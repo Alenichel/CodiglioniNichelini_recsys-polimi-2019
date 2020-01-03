@@ -12,9 +12,9 @@ from run_utils import evaluate, build_all_matrices, train_test_split, SplitType
 from mf import AlternatingLeastSquare
 
 
-def to_optimize(n_cluster, max_iter):
+def to_optimize(n_cluster):
     global user_cbf
-    clusters = get_clusters(n_cluster=int(n_cluster), max_iter=int(max_iter))
+    clusters = get_clusters(n_cluster=int(n_cluster))
     top_pop = ClusterizedTopPop()
     top_pop.fit(urm_train, clusters)
     hybrid_fb = HybridRecommender([top_pop, user_cbf], urm_train, merging_type=MergingTechniques.MEDRANK)
@@ -37,8 +37,8 @@ if __name__ == '__main__':
     warm_users = np.where(profile_lengths != 0)[0]
 
     pbounds = {
-        'n_cluster': (2, 25),
-        'max_iter': (50, 1000)
+        'n_cluster': (1, 60),
+        #'max_iter': (50, 1000)
     }
 
     optimizer = BayesianOptimization(
