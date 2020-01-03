@@ -2,7 +2,7 @@
 
 import numpy as np
 from tqdm import trange
-from run_utils import build_all_matrices, clusterize, train_test_split, SplitType, export, evaluate
+from run_utils import set_seed, build_all_matrices, clusterize, train_test_split, SplitType, export, evaluate
 from basic_recommenders import TopPopRecommender
 from cbf import UserCBFKNNRecommender
 from clusterization import get_clusters
@@ -42,7 +42,7 @@ class ClusterizedTopPop:
 
 
 if __name__ == '__main__':
-    np.random.seed(42)
+    set_seed(42)
     EXPORT = False
     urm, icm, ucm, target_users = build_all_matrices()
     if EXPORT:

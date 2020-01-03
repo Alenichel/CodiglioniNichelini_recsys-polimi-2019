@@ -6,7 +6,7 @@ import pandas as pd
 from tqdm import trange
 from cf import ItemCFKNNRecommender
 from basic_recommenders import TopPopRecommender
-from run_utils import build_all_matrices, train_test_split, evaluate, export, SplitType
+from run_utils import set_seed, build_all_matrices, train_test_split, evaluate, export, SplitType
 
 
 class XGBoostedRecommender:
@@ -41,7 +41,7 @@ class XGBoostedRecommender:
 
 
 if __name__ == '__main__':
-    np.random.seed(42)
+    set_seed(42)
     EXPORT = False
     urm, icm, ucm, target_users = build_all_matrices()
     n_users, n_items = urm.shape

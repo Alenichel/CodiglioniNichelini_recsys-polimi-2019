@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import numpy as np
-from run_utils import build_all_matrices, build_age_ucm, train_test_split, evaluate, export, SplitType
+from run_utils import set_seed, build_all_matrices, build_age_ucm, train_test_split, evaluate, export, SplitType
 from list_merge import round_robin_list_merger, frequency_list_merger, medrank
 from cf import ItemCFKNNRecommender, UserCFKNNRecommender
 from cbf import ItemCBFKNNRecommender, UserCBFKNNRecommender
@@ -15,6 +15,7 @@ from model_hybrid import ModelHybridRecommender
 from bayes_opt import BayesianOptimization
 from clusterization import get_clusters
 from clusterized_top_pop import ClusterizedTopPop
+from multiprocessing import Pool
 
 
 class MergingTechniques(Enum):
@@ -111,7 +112,7 @@ def to_optimize(w_mh, w_ucf, w_icbf, w_als):
 
 
 if __name__ == '__main__':
-    np.random.seed(42)
+    set_seed(42)
     EXPORT = False
     urm, icm, ucm, target_users = build_all_matrices()
     age_ucm = build_age_ucm(urm.shape[0])
@@ -156,7 +157,7 @@ if __name__ == '__main__':
     als = AlternatingLeastSquare()
     als.fit(urm_train, n_factors=896, regularization=99.75, iterations=152, cache=not EXPORT)
 
-    '''hybrid = HybridRecommender([model_hybrid, user_cf, item_cbf, als],
+    hybrid = HybridRecommender([model_hybrid, user_cf, item_cbf, als],
                                urm_train,
                                merging_type=MergingTechniques.WEIGHTS,
                                weights=[0.4767, 2.199, 2.604, 7.085],
@@ -165,8 +166,20 @@ if __name__ == '__main__':
     if EXPORT:
         export(target_users, hybrid)
     else:
-        evaluate(hybrid, urm_test)
-    exit()'''
+        #evaluate(hybrid, urm_test)
+        with Pool(processes=4) as pool:
+            args = [(hybrid, urm_test1), (hybrid, urm_test2), (hybrid, urm_test3), (hybrid, urm_test4), (hybrid, urm_test5)]
+            maps = pool.starmap(evaluate, args, chunksize=1)
+            maps = [x['MAP'] for x in maps]
+            result = np.mean(maps)
+            print(result)
+        '''result = np.mean([evaluate(hybrid, urm_test1)['MAP'],
+                          evaluate(hybrid, urm_test2)['MAP'],
+                          evaluate(hybrid, urm_test3)['MAP'],
+                          evaluate(hybrid, urm_test4)['MAP'],
+                          evaluate(hybrid, urm_test5)['MAP']])
+        print(result)'''
+    exit()
 
     pbounds = {
         'w_mh': (0.5, 1),

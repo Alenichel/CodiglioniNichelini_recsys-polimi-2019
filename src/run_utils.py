@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import os
 from enum import Enum
 import numpy as np
 import scipy.sparse as sps
@@ -24,6 +25,15 @@ class SplitType(Enum):
     PROBABILISTIC = 1
     LOO = 2
     LOO_CYTHON = 3
+
+
+def set_seed(seed):
+    os.environ['RECSYS_SEED'] = str(seed)
+    np.random.seed(seed)
+
+
+def get_seed():
+    return int(os.getenv('RECSYS_SEED'))
 
 
 def build_urm():

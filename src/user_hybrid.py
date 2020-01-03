@@ -2,7 +2,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-from run_utils import build_all_matrices, train_test_split, SplitType, evaluate
+from run_utils import set_seed, build_all_matrices, train_test_split, SplitType, evaluate
 from basic_recommenders import TopPopRecommender
 from cbf import ItemCBFKNNRecommender, UserCBFKNNRecommender
 from cf import ItemCFKNNRecommender, UserCFKNNRecommender
@@ -75,7 +75,7 @@ class UserSegmenter:
 
 
 if __name__ == '__main__':
-    np.random.seed(42)
+    set_seed(42)
     EXPORT = False
     urm, icm, ucm, target_users = build_all_matrices()
     if EXPORT:

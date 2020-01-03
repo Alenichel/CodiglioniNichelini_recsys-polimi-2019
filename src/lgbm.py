@@ -4,7 +4,7 @@
 import numpy as np
 import lightgbm as lgb
 import os
-from run_utils import build_all_matrices, train_test_split, SplitType, evaluate, export
+from run_utils import set_seed, build_all_matrices, train_test_split, SplitType, evaluate, export
 from tqdm import trange
 
 
@@ -68,7 +68,7 @@ class LGBMRecommender:
 
 if __name__ == '__main__':
     EXPORT = False
-    np.random.seed(42)
+    set_seed(42)
     urm, icm, ucm, target_users = build_all_matrices()
     urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
     ucm_train, ucm_test = train_test_split(ucm, SplitType.PROBABILISTIC)

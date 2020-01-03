@@ -2,7 +2,7 @@
 
 import numpy as np
 from Base.Recommender_utils import similarityMatrixTopK
-from run_utils import build_all_matrices, train_test_split, SplitType, export, evaluate
+from run_utils import set_seed, build_all_matrices, train_test_split, SplitType, export, evaluate
 from basic_recommenders import TopPopRecommender
 from cf import ItemCFKNNRecommender
 from cbf import UserCBFKNNRecommender
@@ -65,7 +65,7 @@ def to_optimize(top_k, w_icf, w_sbpr, w_senet):
 
 if __name__ == '__main__':
     from hybrid import HybridRecommender, MergingTechniques
-    np.random.seed(42)
+    set_seed(42)
     EXPORT = False
     urm, icm, ucm, target_users = build_all_matrices()
     if EXPORT:

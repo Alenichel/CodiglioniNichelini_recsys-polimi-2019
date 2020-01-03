@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import numpy as np
-from run_utils import build_all_matrices, train_test_split, SplitType, export, evaluate
+from run_utils import set_seed, build_all_matrices, train_test_split, SplitType, export, evaluate
 from helper import TailBoost
 from Base.Similarity.Compute_Similarity_Python import Compute_Similarity_Python
 from basic_recommenders import TopPopRecommender
@@ -106,7 +106,7 @@ class UserCFKNNRecommender(object):
 
 
 def tuner():
-    np.random.seed(42)
+    set_seed(42)
     urm, icm, ucm, target_users = build_all_matrices()
     urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
     top_pop = TopPopRecommender()
@@ -135,7 +135,7 @@ if __name__ == '__main__':
     exit()
 
     EXPORT = False
-    np.random.seed(42)
+    set_seed(42)
     urm, icm, ucm, target_users = build_all_matrices()
     if EXPORT:
         urm_train = urm.tocsr()

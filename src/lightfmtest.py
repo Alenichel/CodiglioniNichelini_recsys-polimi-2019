@@ -5,7 +5,7 @@ from tqdm import trange
 from lightfm import LightFM
 from lightfm.evaluation import precision_at_k
 import matplotlib.pyplot as plt
-from run_utils import build_all_matrices, train_test_split, evaluate, export, SplitType
+from run_utils import set_seed, build_all_matrices, train_test_split, evaluate, export, SplitType
 from bayes_opt import BayesianOptimization
 
 
@@ -57,7 +57,7 @@ def rec_round(no_components, learning_rate, item_alpha, user_alpha, max_sampled)
 
 
 if __name__ == '__main__':
-    np.random.seed(42)
+    set_seed(42)
     EXPORT = False
     urm, icm, ucm, target_users = build_all_matrices()
     if EXPORT:

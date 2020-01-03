@@ -5,7 +5,7 @@ from implicit.als import AlternatingLeastSquares
 from implicit.bpr import BayesianPersonalizedRanking
 from implicit.lmf import LogisticMatrixFactorization
 from bayes_opt import BayesianOptimization
-from run_utils import build_all_matrices, train_test_split, SplitType, export, evaluate
+from run_utils import set_seed, build_all_matrices, train_test_split, SplitType, export, evaluate
 
 
 class MFALSRecommender:
@@ -129,7 +129,7 @@ def lmf_tuner():
 
 
 if __name__ == '__main__':
-    np.random.seed(42)
+    set_seed(42)
 
     EXPORT = False
     urm, icm, ucm, target_users = build_all_matrices()

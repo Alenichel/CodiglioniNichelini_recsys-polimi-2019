@@ -3,7 +3,7 @@
 import numpy as np
 import os
 import implicit
-from run_utils import build_all_matrices, train_test_split, SplitType, export, evaluate
+from run_utils import set_seed, get_seed, build_all_matrices, train_test_split, SplitType, export, evaluate
 from bayes_opt import BayesianOptimization
 
 
@@ -16,7 +16,7 @@ class AlternatingLeastSquare:
 
     @staticmethod
     def get_cache_filename(n_factors, regularization, iterations, alpha):
-        seed = np.random.get_state()[1][0]
+        seed = get_seed()
         return '{seed}_{n_factors}_{regularization}_{iterations}_{alpha}'\
             .format(seed=seed, n_factors=n_factors, regularization=regularization, iterations=iterations, alpha=alpha)
 
@@ -83,7 +83,7 @@ def tuner():
 
 
 if __name__ == '__main__':
-    np.random.seed(42)
+    set_seed(42)
     tuner()
     exit()
 

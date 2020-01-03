@@ -8,7 +8,7 @@ from slim_elasticnet import SLIMElasticNetRecommender
 from hybrid import HybridRecommender, MergingTechniques
 from basic_recommenders import TopPopRecommender
 from cbf import ItemCBFKNNRecommender, UserCBFKNNRecommender
-from run_utils import evaluate, build_all_matrices, train_test_split, SplitType
+from run_utils import evaluate, build_all_matrices, train_test_split, SplitType, set_seed
 from mf import AlternatingLeastSquare
 
 
@@ -20,8 +20,9 @@ def to_optimize(n_cluster):
     hybrid_fb = HybridRecommender([top_pop, user_cbf], urm_train, merging_type=MergingTechniques.MEDRANK)
     return evaluate(hybrid_fb, urm_test, excluded_users=warm_users, verbose=False)['MAP']
 
+
 if __name__ == '__main__':
-    np.random.seed(42)
+    set_seed(42)
     from hybrid import HybridRecommender, MergingTechniques
     from clusterization import get_clusters
     from clusterized_top_pop import ClusterizedTopPop

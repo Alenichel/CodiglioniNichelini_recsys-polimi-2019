@@ -3,7 +3,7 @@
 import numpy as np
 from bayes_opt import BayesianOptimization
 from Base.Similarity.Compute_Similarity_Python import Compute_Similarity_Python
-from run_utils import build_all_matrices, train_test_split, SplitType, export, evaluate
+from run_utils import set_seed, build_all_matrices, train_test_split, SplitType, export, evaluate
 
 
 class ItemCBFKNNRecommender:
@@ -107,6 +107,7 @@ def tuner():
 
 
 if __name__ == '__main__':
+    set_seed(42)
     tuner()
     exit()
 

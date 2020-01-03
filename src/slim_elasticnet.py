@@ -7,7 +7,7 @@ from sklearn.linear_model import ElasticNet
 from sklearn.utils.testing import ignore_warnings
 from sklearn.exceptions import ConvergenceWarning
 from tqdm import trange
-from run_utils import build_all_matrices, train_test_split, SplitType, export, evaluate
+from run_utils import set_seed, get_seed, build_all_matrices, train_test_split, SplitType, export, evaluate
 
 
 class SLIMElasticNetRecommender:
@@ -23,7 +23,7 @@ class SLIMElasticNetRecommender:
 
     @staticmethod
     def get_cache_filename(l1_penalty, l2_penalty, topK):
-        seed = np.random.get_state()[1][0]
+        seed = get_seed()
         return '{seed}_{l1_penalty}_{l2_penalty}_{topK}' \
             .format(seed=seed, l1_penalty=l1_penalty, l2_penalty=l2_penalty, topK=topK)
 
@@ -148,7 +148,7 @@ class SLIMElasticNetRecommender:
 
 
 if __name__ == '__main__':
-    np.random.seed(42)
+    set_seed(42)
     EXPORT = False
     urm, icm, ucm, target_users = build_all_matrices()
     if EXPORT:
