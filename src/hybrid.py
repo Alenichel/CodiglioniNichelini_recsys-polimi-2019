@@ -149,7 +149,7 @@ if __name__ == '__main__':
     als = AlternatingLeastSquare()
     als.fit(urm_train, n_factors=896, regularization=99.75, iterations=152, cache=not EXPORT)
 
-    hybrid = HybridRecommender([model_hybrid, user_cf, item_cbf, als],
+    '''hybrid = HybridRecommender([model_hybrid, user_cf, item_cbf, als],
                                urm_train,
                                merging_type=MergingTechniques.WEIGHTS,
                                weights=[0.4767, 2.199, 2.604, 7.085],
@@ -159,15 +159,9 @@ if __name__ == '__main__':
         export(target_users, hybrid)
     else:
         #evaluate(hybrid, urm_test)
-        result = evaluate_mp(hybrid, [urm_test1, urm_test2, urm_test3], verbose=False)
+        result = evaluate_mp(hybrid, [urm_test1, urm_test2, urm_test3], verbose=True)
         print(result)
-        '''result = np.mean([evaluate(hybrid, urm_test1)['MAP'],
-                          evaluate(hybrid, urm_test2)['MAP'],
-                          evaluate(hybrid, urm_test3)['MAP'],
-                          evaluate(hybrid, urm_test4)['MAP'],
-                          evaluate(hybrid, urm_test5)['MAP']])
-        print(result)'''
-    exit()
+    exit()'''
 
     pbounds = {
         'w_mh': (0.5, 1),
