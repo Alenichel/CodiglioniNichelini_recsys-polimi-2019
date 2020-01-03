@@ -12,60 +12,33 @@ from run_utils import evaluate, build_all_matrices, train_test_split, SplitType
 from mf import AlternatingLeastSquare
 
 
-def to_optimize(w_icbf, w_icf, w_ucf, w_slim_bpr, w_slim_enet, w_als):
-    global item_cbf, item_cf, user_cf, slim_bpr, slim_enet, als
-    hybrid = HybridRecommender([item_cbf, item_cf, user_cf, slim_bpr, slim_enet, als],
-                               urm_train,
-                               merging_type=MergingTechniques.WEIGHTS,
-                               weights=[w_icbf, w_icf, w_ucf, w_slim_bpr, w_slim_enet, w_als])
-    return evaluate(hybrid, urm_test, cython=True, verbose=False)['MAP']
-
+def to_optimize(n_cluster, max_iter):
+    global user_cbf
+    clusters = get_clusters(n_cluster=int(n_cluster), max_iter=int(max_iter))
+    top_pop = ClusterizedTopPop()
+    top_pop.fit(urm_train, clusters)
+    hybrid_fb = HybridRecommender([top_pop, user_cbf], urm_train, merging_type=MergingTechniques.MEDRANK)
+    return evaluate(hybrid_fb, urm_test, excluded_users=warm_users, verbose=False)['MAP']
 
 if __name__ == '__main__':
     np.random.seed(42)
+    from hybrid import HybridRecommender, MergingTechniques
+    from clusterization import get_clusters
+    from clusterized_top_pop import ClusterizedTopPop
 
-    EXPORT = False
     urm, icm, ucm, target_users = build_all_matrices()
-    if EXPORT:
-        urm_train = urm.tocsr()
-        urm_test = None
-    else:
-        urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
-    n_users, n_items = urm_train.shape
+    urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
 
-    top_pop = TopPopRecommender()
-    top_pop.fit(urm_train)
-
+    # USER CBF
     user_cbf = UserCBFKNNRecommender()
     user_cbf.fit(urm_train, ucm, top_k=496, shrink=0, normalize=False)
 
-    hybrid_fb = HybridRecommender([top_pop, user_cbf], urm_train, merging_type=MergingTechniques.MEDRANK)
-
-    item_cbf = ItemCBFKNNRecommender()
-    item_cbf.fit(urm_train, icm, 417, 0.3, normalize=True)
-
-    item_cf = ItemCFKNNRecommender()
-    item_cf.fit(urm_train, top_k=4, shrink=34, normalize=False, similarity='jaccard')
-
-    user_cf = UserCFKNNRecommender()
-    user_cf.fit(urm_train, top_k=593, shrink=4, normalize=False, similarity='tanimoto')
-
-    slim_bpr = SLIM_BPR()
-    slim_bpr.fit(urm_train, epochs=300)
-
-    slim_enet = SLIMElasticNetRecommender()
-    slim_enet.fit(urm_train)
-
-    als = AlternatingLeastSquare()
-    als.fit(urm_train, n_factors=497, regularization=9.79, iterations=127)
+    profile_lengths = np.ediff1d(urm_train.indptr)
+    warm_users = np.where(profile_lengths != 0)[0]
 
     pbounds = {
-        'w_icbf': (0.00001, 1),
-        'w_icf': (8, 10),
-        'w_ucf': (0.00001, 1),
-        'w_slim_bpr': (0.00001, 1),
-        'w_slim_enet': (8, 10),
-        'w_als': (0.00001, 10)
+        'n_cluster': (2, 25),
+        'max_iter': (50, 1000)
     }
 
     optimizer = BayesianOptimization(
@@ -74,8 +47,8 @@ if __name__ == '__main__':
     )
 
     optimizer.maximize(
-        init_points=30,
-        n_iter=300,
+        init_points=50,
+        n_iter=500,
     )
 
     for i, res in enumerate(optimizer.res):

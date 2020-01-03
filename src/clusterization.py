@@ -7,7 +7,7 @@ from sklearn.cluster import KMeans
 from run_utils import DataFiles
 
 
-def get_clusters():
+def get_clusters(n_cluster=10, max_iter=300):
     np.random.seed(42)
     age_data = pd.read_csv(DataFiles.UCM_AGE)
     age_data = age_data.drop(['data'], axis=1)
@@ -17,7 +17,7 @@ def get_clusters():
     region_data = region_data.rename(columns={'row': 'user_id', 'col': 'region'})
     data = pd.merge(age_data, region_data, on='user_id')
     X = data.drop(['user_id'], axis=1)
-    kmeans = KMeans(n_clusters=10, init='k-means++', max_iter=300, n_init=10, random_state=42)
+    kmeans = KMeans(n_clusters=n_cluster, init='k-means++', max_iter=max_iter, n_init=10, random_state=42)
     pred_y = kmeans.fit_predict(X)
     clusters = {cluster: list() for cluster in range(max(pred_y) + 1)}
     for i in range(len(data)):
@@ -25,6 +25,7 @@ def get_clusters():
         user_id = data.user_id.iloc[i]
         clusters[cluster_id].append(user_id)
     return clusters
+
 if __name__ == '__main__':
     np.random.seed(42)
     age_data = pd.read_csv(DataFiles.UCM_AGE)

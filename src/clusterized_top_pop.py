@@ -38,7 +38,7 @@ class ClusterizedTopPop:
             cluster = self.cluster_for_user[user_id]
             return self.recommenders[cluster].recommend(user_id, at, False)
         except KeyError:
-            return self.std_top_pop.recommend(user_id, at, exclude_seen)
+            return self.std_top_pop.recommend(user_id, at, False)
 
 
 if __name__ == '__main__':
@@ -59,6 +59,8 @@ if __name__ == '__main__':
     user_cbf.fit(urm_train, ucm, top_k=496, shrink=0, normalize=False)
     # HYBRID FALLBACK
     from hybrid import HybridRecommender, MergingTechniques
+    top_pop = TopPopRecommender()
+    top_pop.fit(urm_train)
     hybrid_fb = HybridRecommender([top_pop, user_cbf], urm_train, merging_type=MergingTechniques.MEDRANK)
     if EXPORT:
         export(target_users, hybrid_fb)

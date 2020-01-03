@@ -13,7 +13,8 @@ from slim_elasticnet import SLIMElasticNetRecommender
 from mf import AlternatingLeastSquare
 from model_hybrid import ModelHybridRecommender
 from bayes_opt import BayesianOptimization
-
+from clusterization import get_clusters
+from clusterized_top_pop import ClusterizedTopPop
 
 class MergingTechniques(Enum):
     WEIGHTS = 1
@@ -104,8 +105,8 @@ def to_optimize(w_mh, w_ucf, w_icbf, w_als):
 
 
 if __name__ == '__main__':
-    np.random.seed(42)
-    EXPORT = False
+    #np.random.seed(42)
+    EXPORT = True
     urm, icm, ucm, target_users = build_all_matrices()
     age_ucm = build_age_ucm(urm.shape[0])
     if EXPORT:
@@ -115,8 +116,9 @@ if __name__ == '__main__':
         urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
 
     # TOP-POP
-    top_pop = TopPopUCM()
-    top_pop.fit(urm_train, age_ucm)
+    clusters = get_clusters()
+    top_pop = ClusterizedTopPop()
+    top_pop.fit(urm_train, clusters)
     # USER CBF
     user_cbf = UserCBFKNNRecommender()
     user_cbf.fit(urm_train, ucm, top_k=496, shrink=0, normalize=False)
