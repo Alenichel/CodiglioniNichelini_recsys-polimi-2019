@@ -8,6 +8,7 @@ from sklearn.preprocessing import LabelEncoder
 from tqdm import tqdm, trange
 from cython_modules.leave_one_out import train_test_loo_split as __train_test_loo_split_cython
 from csv_utils import load_csv, export_csv
+from multiprocessing import Pool
 
 
 class DataFiles:
@@ -142,6 +143,16 @@ def evaluate(recommender, urm_test, excluded_users=[], cython=False, verbose=Tru
         return evaluate_cython(recommender, urm_test, verbose=verbose)
     else:
         return evaluate_algorithm(recommender, urm_test, excluded_users=excluded_users, verbose=verbose)
+
+
+def evaluate_mp(recommender, urm_tests, excluded_users=[], cython=False, verbose=True):
+    assert type(urm_tests) == list
+    assert len(urm_tests) >= 1
+    with Pool(processes=len(urm_tests)) as pool:
+        args = [(recommender, urm_test, excluded_users, cython, verbose) for urm_test in urm_tests]
+        maps = pool.starmap(evaluate, args, chunksize=1)
+        maps = [x['MAP'] for x in maps]
+        return np.mean(maps)
 
 
 def export(target_users, recommender):

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import numpy as np
-from run_utils import set_seed, build_all_matrices, build_age_ucm, train_test_split, evaluate, export, SplitType
+from run_utils import set_seed, build_all_matrices, build_age_ucm, train_test_split, evaluate, export, SplitType, evaluate_mp
 from list_merge import round_robin_list_merger, frequency_list_merger, medrank
 from cf import ItemCFKNNRecommender, UserCFKNNRecommender
 from cbf import ItemCBFKNNRecommender, UserCBFKNNRecommender
@@ -15,7 +15,6 @@ from model_hybrid import ModelHybridRecommender
 from bayes_opt import BayesianOptimization
 from clusterization import get_clusters
 from clusterized_top_pop import ClusterizedTopPop
-from multiprocessing import Pool
 
 
 class MergingTechniques(Enum):
@@ -103,12 +102,7 @@ def to_optimize(w_mh, w_ucf, w_icbf, w_als):
                                merging_type=MergingTechniques.WEIGHTS,
                                weights=[w_mh, w_ucf, w_icbf, w_als],
                                fallback_recommender=hybrid_fb)
-    np.mean([evaluate(hybrid, urm_test1, verbose=False)['MAP'],
-             evaluate(hybrid, urm_test2, verbose=False)['MAP'],
-             evaluate(hybrid, urm_test3, verbose=False)['MAP'],
-             evaluate(hybrid, urm_test4, verbose=False)['MAP'],
-             evaluate(hybrid, urm_test5, verbose=False)['MAP']])
-    return evaluate(hybrid, urm_test, verbose=False)['MAP']
+    return evaluate_mp(hybrid, [urm_test1, urm_test2, urm_test3], verbose=False)
 
 
 if __name__ == '__main__':
@@ -123,8 +117,6 @@ if __name__ == '__main__':
         urm_train, urm_test1 = train_test_split(urm, SplitType.PROBABILISTIC)
         urm_train, urm_test2 = train_test_split(urm_train, SplitType.PROBABILISTIC)
         urm_train, urm_test3 = train_test_split(urm_train, SplitType.PROBABILISTIC)
-        urm_train, urm_test4 = train_test_split(urm_train, SplitType.PROBABILISTIC)
-        urm_train, urm_test5 = train_test_split(urm_train, SplitType.PROBABILISTIC)
 
     # TOP-POP
     clusters = get_clusters(n_cluster=4)
@@ -167,12 +159,8 @@ if __name__ == '__main__':
         export(target_users, hybrid)
     else:
         #evaluate(hybrid, urm_test)
-        with Pool(processes=4) as pool:
-            args = [(hybrid, urm_test1), (hybrid, urm_test2), (hybrid, urm_test3), (hybrid, urm_test4), (hybrid, urm_test5)]
-            maps = pool.starmap(evaluate, args, chunksize=1)
-            maps = [x['MAP'] for x in maps]
-            result = np.mean(maps)
-            print(result)
+        result = evaluate_mp(hybrid, [urm_test1, urm_test2, urm_test3], verbose=False)
+        print(result)
         '''result = np.mean([evaluate(hybrid, urm_test1)['MAP'],
                           evaluate(hybrid, urm_test2)['MAP'],
                           evaluate(hybrid, urm_test3)['MAP'],
