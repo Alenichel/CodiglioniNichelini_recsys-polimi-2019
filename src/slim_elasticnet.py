@@ -21,11 +21,11 @@ class SLIMElasticNetRecommender:
     def __str__(self):
         return 'SLIM ElasticNet'
 
-    @staticmethod
-    def get_cache_filename(l1_penalty, l2_penalty, topK):
+    def get_cache_filename(self, l1_penalty, l2_penalty, topK):
         seed = get_seed()
-        return '{seed}_{l1_penalty}_{l2_penalty}_{topK}' \
-            .format(seed=seed, l1_penalty=l1_penalty, l2_penalty=l2_penalty, topK=topK)
+        urm_train_nnz = self.urm_train.nnz
+        return '{seed}_{urm_train_nnz}_{l1_penalty}_{l2_penalty}_{topK}' \
+            .format(seed=seed, urm_train_nnz=urm_train_nnz, l1_penalty=l1_penalty, l2_penalty=l2_penalty, topK=topK)
 
     @ignore_warnings(category=ConvergenceWarning)
     def fit(self, urm_train, l1_penalty=0.01, l2_penalty=0.01, positive_only=True, topK=100, cache=True):
@@ -36,7 +36,7 @@ class SLIMElasticNetRecommender:
             print("SLIM_ElasticNet: l1_penalty+l2_penalty cannot be equal to zero, setting the ratio l1/(l1+l2) to 1.0")
             l1_ratio = 1.0
         cache_dir = 'models/slim_elasticnet/'
-        cache_file = cache_dir + SLIMElasticNetRecommender.get_cache_filename(l1_penalty, l2_penalty, topK) + '.npz'
+        cache_file = cache_dir + self.get_cache_filename(l1_penalty, l2_penalty, topK) + '.npz'
         if cache:
             if os.path.exists(cache_file):
                 print('SLIM ElasticNet: using cached model')

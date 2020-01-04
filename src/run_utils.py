@@ -35,7 +35,10 @@ def set_seed(seed):
 
 
 def get_seed():
-    return int(os.getenv('RECSYS_SEED'))
+    env = os.getenv('RECSYS_SEED')
+    if env:
+        return int(env)
+    return 0
 
 
 def build_urm():

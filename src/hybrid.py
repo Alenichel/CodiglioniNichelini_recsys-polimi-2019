@@ -79,7 +79,7 @@ class HybridRecommender:
         return medrank(recommendations)[:at]
 
 
-def get_hybrid_components(urm_train, icm, ucm):
+def get_hybrid_components(urm_train, icm, ucm, cache=True):
     # TOP-POP
     top_pop = TopPopRecommender()
     top_pop.fit(urm_train)
@@ -96,7 +96,7 @@ def get_hybrid_components(urm_train, icm, ucm):
     slim_bpr.fit(urm_train, epochs=300)
     # SLIM ELASTICNET
     slim_enet = SLIMElasticNetRecommender(fallback_recommender=hybrid_fb)
-    slim_enet.fit(urm_train, cache=not EXPORT)
+    slim_enet.fit(urm_train, cache=cache)
     # MODEL HYBRID
     model_hybrid = ModelHybridRecommender([item_cf.w_sparse, slim_bpr.W, slim_enet.W_sparse], [42.82, 535.4, 52.17],
                                           fallback_recommender=hybrid_fb)
@@ -109,12 +109,12 @@ def get_hybrid_components(urm_train, icm, ucm):
     item_cbf.fit(urm_train, icm, 417, 0.3, normalize=True)
     # ALS
     als = AlternatingLeastSquare()
-    als.fit(urm_train, n_factors=896, regularization=99.75, iterations=152, cache=not EXPORT)
+    als.fit(urm_train, n_factors=896, regularization=99.75, iterations=152, cache=cache)
     return hybrid_fb, model_hybrid, user_cf, item_cbf, als
 
 
-def get_hybrid(urm_train, icm, ucm):
-    hybrid_fb, model_hybrid, user_cf, item_cbf, als = get_hybrid_components(urm_train, icm, ucm)
+def get_hybrid(urm_train, icm, ucm, cache=True):
+    hybrid_fb, model_hybrid, user_cf, item_cbf, als = get_hybrid_components(urm_train, icm, ucm, cache)
     hybrid = HybridRecommender([model_hybrid, user_cf, item_cbf, als],
                                urm_train,
                                merging_type=MergingTechniques.WEIGHTS,
@@ -149,7 +149,7 @@ if __name__ == '__main__':
         urm_train, urm_test2 = train_test_split(urm_train, SplitType.PROBABILISTIC, split=fifteen_percent_test[1])
         urm_train, urm_test3 = train_test_split(urm_train, SplitType.PROBABILISTIC, split=fifteen_percent_test[1])
 
-    hybrid = get_hybrid(urm_train, icm, ucm)
+    hybrid = get_hybrid(urm_train, icm, ucm, cache=not EXPORT)
 
     if EXPORT:
         export(target_users, hybrid)
@@ -157,6 +157,8 @@ if __name__ == '__main__':
         result = evaluate_mp(hybrid, [urm_test1, urm_test2, urm_test3], verbose=True, n_processes=1)
         print(result)
     exit()
+
+    hybrid_fb, model_hybrid, user_cf, item_cbf, als = get_hybrid_components(urm_train, icm, ucm)
 
     pbounds = {
         'w_mh': (0.5, 1),

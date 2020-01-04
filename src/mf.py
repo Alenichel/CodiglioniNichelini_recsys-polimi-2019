@@ -14,16 +14,16 @@ class AlternatingLeastSquare:
         self.user_factors = None
         self.item_factors = None
 
-    @staticmethod
-    def get_cache_filename(n_factors, regularization, iterations, alpha):
+    def get_cache_filename(self, n_factors, regularization, iterations, alpha):
         seed = get_seed()
-        return '{seed}_{n_factors}_{regularization}_{iterations}_{alpha}'\
-            .format(seed=seed, n_factors=n_factors, regularization=regularization, iterations=iterations, alpha=alpha)
+        urm_nnz = self.urm.nnz
+        return '{seed}_{urm_nnz}_{n_factors}_{regularization}_{iterations}_{alpha}'\
+            .format(seed=seed, urm_nnz=urm_nnz, n_factors=n_factors, regularization=regularization, iterations=iterations, alpha=alpha)
 
     def fit(self, urm, n_factors=300, regularization=0.15, iterations=30, alpha=24, verbose=True, cache=True):
         self.urm = urm
         cache_dir = 'models/als/'
-        cache_file = cache_dir + AlternatingLeastSquare.get_cache_filename(n_factors, regularization, iterations, alpha) + '.npy'
+        cache_file = cache_dir + self.get_cache_filename(n_factors, regularization, iterations, alpha) + '.npy'
         if cache:
             if os.path.exists(cache_file):
                 if verbose:
