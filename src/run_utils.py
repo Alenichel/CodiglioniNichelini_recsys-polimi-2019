@@ -218,6 +218,7 @@ def __encode_values(values):
 group_struct = namedtuple('group_struct', ['in_group', 'not_in_group'])
 def user_segmenter(urm_train, n_groups=10):
     groups = dict()
+    users = dict()
     profile_length = np.ediff1d(urm_train.indptr)
     group_size = int(profile_length.size/n_groups)
     sorted_users = np.argsort(profile_length)
@@ -225,10 +226,12 @@ def user_segmenter(urm_train, n_groups=10):
         start_pos = group_id * group_size
         end_pos = min((group_id + 1) * group_size, len(profile_length))
         users_in_group = sorted_users[start_pos:end_pos]
+        for user in users_in_group:
+            users[user] = group_id
         users_not_in_group_flag = np.isin(sorted_users, users_in_group, invert=True)
         users_not_in_group = sorted_users[users_not_in_group_flag]
         groups[group_id] = group_struct(in_group=users_in_group, not_in_group=users_not_in_group)
-    return groups
+    return groups, users
 
 if __name__ == '__main__':
     from evaluation import evaluate_by_cluster
