@@ -8,15 +8,16 @@ from mf import AlternatingLeastSquare
 from run_utils import build_all_matrices, user_segmenter, set_seed, train_test_split, SplitType, export, evaluate
 from model_hybrid import ModelHybridRecommender
 from slim_elasticnet import SLIMElasticNetRecommender
+from basic_recommenders import TopPopRecommender
 
 
 class GroupsHybridRecommender:
 
     def initiliaze_recommender(self):
+        global urm_train, ucm
         # TOP-POP
-        clusters = get_clusters_profile_length(self.urm_train, n_cluster=4)
-        top_pop = ClusterizedTopPop()
-        top_pop.fit(urm_train, clusters)
+        top_pop = TopPopRecommender()
+        top_pop.fit(urm_train)
         # USER CBF
         user_cbf = UserCBFKNNRecommender()
         user_cbf.fit(urm_train, ucm, top_k=496, shrink=0, normalize=False)
@@ -52,7 +53,7 @@ class GroupsHybridRecommender:
         return hybrid
 
     def __init__(self, urm_train, users, weight_list):
-        assert len(weight_list) == max(users.values) + 1
+        #assert len(weight_list) == max(users.values) + 1
         self.urm_train = urm_train
         self.users = users
         self.weight_list = weight_list
@@ -77,9 +78,15 @@ if __name__ == '__main__':
     urm, icm, ucm, target_users = build_all_matrices()
 
 
-    _groups , users = user_segmenter(urm_train=urm, n_groups=10)
-    exit()
-    hybrid = GroupsHybridRecommender(users)
+    _ , users = get_clusters_profile_length(urm_train, n_clusters=4)
+    w_list = [
+        [8.835, 9.287, 5.396, 9.454],   # cluster 1
+        [5.938, 5.627, 2.84, 0.1773],   # cluster 2
+        [0.4767, 2.199, 2.604, 7.085],  # cluster 3
+        [3.458, 1.12, 0.7082, 6.993 ]   # cluster 4
+    ]
+
+    hybrid = GroupsHybridRecommender(urm_train=urm_train, users=users, weight_list=w_list )
 
     if EXPORT:
         export(target_users, hybrid)
