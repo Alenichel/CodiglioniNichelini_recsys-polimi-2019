@@ -26,7 +26,7 @@ def get_clusters(n_cluster=10, max_iter=300):
     return clusters
 
 
-def get_clusters_profile_length(urm_train, n_clusters=10, max_iter=300, check=True):
+def get_clusters_profile_length(urm_train, n_clusters=10, check=True, stats=False):
     users = np.arange(urm_train.shape[0])
     profile_length = np.ediff1d(urm_train.indptr)
     if check:
@@ -34,7 +34,7 @@ def get_clusters_profile_length(urm_train, n_clusters=10, max_iter=300, check=Tr
         for user_id in users:
             assert urm_train[user_id].sum() == profile_length[user_id]
     data_len = len(users)
-    kmeans = KMeans(n_clusters=n_clusters, init='k-means++', max_iter=max_iter, n_init=10)
+    kmeans = KMeans(n_clusters=n_clusters, init='k-means++', max_iter=300, n_init=10, random_state=42)
     X = profile_length.reshape(-1, 1)
     clusters = kmeans.fit_predict(X)
     user_to_cluster = dict()
@@ -49,10 +49,18 @@ def get_clusters_profile_length(urm_train, n_clusters=10, max_iter=300, check=Tr
         users_not_in_cluster = np.isin(users, users_in_cluster, invert=True)
         users_not_in_cluster = users[users_not_in_cluster]
         cluster_to_users[cluster_id] = group_struct(in_group=users_in_cluster, not_in_group=users_not_in_cluster)
+    if stats:
+        for cluster in cluster_to_users:
+            print('Cluster:         ', cluster)
+            print('Number of users: ', len(cluster_to_users[cluster].in_group))
+            profile_length_cluster = profile_length[cluster_to_users[cluster].in_group]
+            print('Min profile len: ', min(profile_length_cluster))
+            print('Max profile len: ', max(profile_length_cluster))
+            print()
     return cluster_to_users, user_to_cluster
 
 
 if __name__ == '__main__':
     urm, _, _, _ = build_all_matrices()
     urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
-    clusters = get_clusters_profile_length(urm_train, n_clusters=4)
+    get_clusters_profile_length(urm_train, n_clusters=4, stats=True)
