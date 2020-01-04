@@ -145,10 +145,13 @@ def evaluate(recommender, urm_test, excluded_users=[], cython=False, verbose=Tru
         return evaluate_algorithm(recommender, urm_test, excluded_users=excluded_users, verbose=verbose)
 
 
-def evaluate_mp(recommender, urm_tests, excluded_users=[], cython=False, verbose=True):
+def evaluate_mp(recommender, urm_tests, excluded_users=[], cython=False, verbose=True, n_processes=0):
     assert type(urm_tests) == list
     assert len(urm_tests) >= 1
-    with Pool(processes=len(urm_tests)) as pool:
+    assert type(n_processes) == int
+    if n_processes == 0:
+        n_processes = len(urm_tests)
+    with Pool(processes=n_processes) as pool:
         args = [(recommender, urm_test, excluded_users, cython, verbose) for urm_test in urm_tests]
         maps = pool.starmap(evaluate, args, chunksize=1)
         maps = [x['MAP'] for x in maps]

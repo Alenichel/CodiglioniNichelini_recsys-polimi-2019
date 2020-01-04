@@ -102,7 +102,7 @@ def to_optimize(w_mh, w_ucf, w_icbf, w_als):
                                merging_type=MergingTechniques.WEIGHTS,
                                weights=[w_mh, w_ucf, w_icbf, w_als],
                                fallback_recommender=hybrid_fb)
-    return evaluate_mp(hybrid, [urm_test1, urm_test2, urm_test3], verbose=False)
+    return evaluate_mp(hybrid, [urm_test1, urm_test2, urm_test3], verbose=False, n_processes=1)
 
 
 if __name__ == '__main__':
@@ -114,11 +114,13 @@ if __name__ == '__main__':
         urm_train = urm.tocsr()
         urm_test = None
     else:
-        # The splitting are done so that each test set is 10% if the original data set
-        # and the final train set is 70% of the original data set
-        urm_train, urm_test1 = train_test_split(urm, SplitType.PROBABILISTIC, split=9/10)
-        urm_train, urm_test2 = train_test_split(urm_train, SplitType.PROBABILISTIC, split=8/9)
-        urm_train, urm_test3 = train_test_split(urm_train, SplitType.PROBABILISTIC, split=7/8)
+        ten_percent_test = [9/10, 8/9, 7/8]
+        fifteen_percent_test = [17/20, 14/17, 11/14]
+        # The splitting are done so that each test set is 15% if the original data set
+        # and the final train set is 55% of the original data set
+        urm_train, urm_test1 = train_test_split(urm, SplitType.PROBABILISTIC, split=fifteen_percent_test[0])
+        urm_train, urm_test2 = train_test_split(urm_train, SplitType.PROBABILISTIC, split=fifteen_percent_test[1])
+        urm_train, urm_test3 = train_test_split(urm_train, SplitType.PROBABILISTIC, split=fifteen_percent_test[1])
 
     # TOP-POP
     clusters = get_clusters(n_cluster=4)
@@ -161,7 +163,7 @@ if __name__ == '__main__':
         export(target_users, hybrid)
     else:
         #evaluate(hybrid, urm_test)
-        result = evaluate_mp(hybrid, [urm_test1, urm_test2, urm_test3], verbose=True)
+        result = evaluate_mp(hybrid, [urm_test1, urm_test2, urm_test3], verbose=True, n_processes=1)
         print(result)
     exit()'''
 
