@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 from sklearn.cluster import KMeans
-from run_utils import DataFiles
+from run_utils import DataFiles, build_all_matrices, train_test_split, SplitType, group_struct
 
 
 def get_clusters(n_cluster=10, max_iter=300):
@@ -25,39 +25,34 @@ def get_clusters(n_cluster=10, max_iter=300):
         clusters[cluster_id].append(user_id)
     return clusters
 
+
+def get_clusters_profile_length(urm_train, n_clusters=10, max_iter=300, check=True):
+    users = np.arange(urm_train.shape[0])
+    profile_length = np.ediff1d(urm_train.indptr)
+    if check:
+        assert len(users) == len(profile_length)
+        for user_id in users:
+            assert urm_train[user_id].sum() == profile_length[user_id]
+    data_len = len(users)
+    kmeans = KMeans(n_clusters=n_clusters, init='k-means++', max_iter=max_iter, n_init=10)
+    X = profile_length.reshape(-1, 1)
+    clusters = kmeans.fit_predict(X)
+    user_to_cluster = dict()
+    for user_id in users:
+        user_to_cluster[user_id] = clusters[user_id]
+    cluster_to_users = dict()
+    for cluster_id in range(max(clusters) + 1):
+        users_in_cluster = list()
+        for i in range(data_len):
+            if clusters[i] == cluster_id:
+                users_in_cluster.append(users[i])
+        users_not_in_cluster = np.isin(users, users_in_cluster, invert=True)
+        users_not_in_cluster = users[users_not_in_cluster]
+        cluster_to_users[cluster_id] = group_struct(in_group=users_in_cluster, not_in_group=users_not_in_cluster)
+    return cluster_to_users, user_to_cluster
+
+
 if __name__ == '__main__':
-    age_data = pd.read_csv(DataFiles.UCM_AGE)
-    age_data = age_data.drop(['data'], axis=1)
-    age_data = age_data.rename(columns={'row': 'user_id', 'col': 'age'})
-    region_data = pd.read_csv(DataFiles.UCM_REGION)
-    region_data = region_data.drop(['data'], axis=1)
-    region_data = region_data.rename(columns={'row': 'user_id', 'col': 'region'})
-    data = pd.merge(age_data, region_data, on='user_id')
-    X = data.drop(['user_id'], axis=1)
-    '''wcss = []
-    for i in range(1, 21):
-        kmeans = KMeans(n_clusters=i, init='k-means++', max_iter=300, n_init=10, random_state=0)
-        kmeans.fit(X)
-        wcss.append(kmeans.inertia_)
-    plt.plot(range(1, 21), wcss)
-    plt.show()'''
-    kmeans = KMeans(n_clusters=10, init='k-means++', max_iter=300, n_init=10, random_state=42)
-    pred_y = kmeans.fit_predict(X)
-    plt.scatter(data['age'], data['region'])
-    plt.scatter(kmeans.cluster_centers_[:, 0], kmeans.cluster_centers_[:, 1], s=300, c='red')
-    plt.show()
-    clusters = {cluster: list() for cluster in range(max(pred_y) + 1)}
-    for i in range(len(data)):
-        cluster_id = pred_y[i]
-        user_id = data.user_id.iloc[i]
-        clusters[cluster_id].append(user_id)
-    '''kmeans = KMeans(n_clusters=n_clusters, init='k-means++', max_iter=300, n_init=10)
-    pred_y = kmeans.fit_predict(X)
-    plt.scatter(X[:, 0], X[:, 1])
-    plt.scatter(kmeans.cluster_centers_[:, 0], kmeans.cluster_centers_[:, 1], s=300, c='red')
-    plt.show()
-    count = 0
-    for i in range(len(y)):
-        if y[i] == pred_y[i]:
-            count += 1
-    print(count)'''
+    urm, _, _, _ = build_all_matrices()
+    urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
+    clusters = get_clusters_profile_length(urm_train, n_clusters=4)

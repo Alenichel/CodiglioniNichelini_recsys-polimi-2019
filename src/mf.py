@@ -27,7 +27,7 @@ class AlternatingLeastSquare:
         if cache:
             if os.path.exists(cache_file):
                 if verbose:
-                    print('Using cached model')
+                    print('ALS: using cached model')
                 data = np.load(cache_file, allow_pickle=True)
                 self.user_factors = data[0]
                 self.item_factors = data[1]

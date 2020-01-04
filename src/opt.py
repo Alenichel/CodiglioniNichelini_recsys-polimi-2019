@@ -9,8 +9,9 @@ from slim_elasticnet import SLIMElasticNetRecommender
 from hybrid import HybridRecommender, MergingTechniques
 from basic_recommenders import TopPopRecommender
 from cbf import ItemCBFKNNRecommender, UserCBFKNNRecommender
-from run_utils import evaluate, build_all_matrices, train_test_split, SplitType, set_seed, user_segmenter
+from run_utils import evaluate, build_all_matrices, train_test_split, SplitType, set_seed
 from mf import AlternatingLeastSquare
+from clusterization import get_clusters_profile_length
 
 def to_optimize(w_model, w_ucf, w_icbf, w_als):
     global to_exclude, hybrid_fb, model_hybrid, user_cf, als, item_cbf
@@ -31,8 +32,7 @@ if __name__ == '__main__':
     urm, icm, ucm, target_users = build_all_matrices()
     urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
 
-    groups, _ = user_segmenter(urm_train, n_groups=10)
-    to_exclude = groups[1].not_in_group
+    groups, _ = get_clusters_profile_length(urm_train, n_clusters=4)
 
     # TOP-POP
     top_pop = TopPopRecommender()
@@ -71,10 +71,7 @@ if __name__ == '__main__':
                                weights=[0.4767, 2.199, 2.604, 7.085],
                                fallback_recommender=hybrid_fb)
 
-
-
-
-    for n in range(10):
+    for n in range(len(groups)):
         to_exclude = groups[n].not_in_group
         evaluate(hybrid, urm_test, verbose=True, excluded_users=to_exclude)
 

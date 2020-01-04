@@ -1,6 +1,6 @@
 from cbf import UserCBFKNNRecommender, ItemCBFKNNRecommender
 from cf import ItemCFKNNRecommender, UserCFKNNRecommender
-from clusterization import get_clusters
+from clusterization import get_clusters, get_clusters_profile_length
 from clusterized_top_pop import ClusterizedTopPop
 from cython_modules.SLIM_BPR.SLIM_BPR_CYTHON import SLIM_BPR
 from hybrid import HybridRecommender, MergingTechniques
@@ -14,7 +14,7 @@ class GroupsHybridRecommender:
 
     def initiliaze_recommender(self):
         # TOP-POP
-        clusters = get_clusters(n_cluster=4)
+        clusters = get_clusters_profile_length(self.urm_train, n_cluster=4)
         top_pop = ClusterizedTopPop()
         top_pop.fit(urm_train, clusters)
         # USER CBF
@@ -51,8 +51,9 @@ class GroupsHybridRecommender:
                                    fallback_recommender=hybrid_fb)
         return hybrid
 
-    def __init__(self, users, weight_list):
+    def __init__(self, urm_train, users, weight_list):
         assert len(weight_list) == max(users.values) + 1
+        self.urm_train = urm_train
         self.users = users
         self.weight_list = weight_list
         self.rec_sys = self.initiliaze_recommender()

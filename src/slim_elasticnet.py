@@ -39,7 +39,7 @@ class SLIMElasticNetRecommender:
         cache_file = cache_dir + SLIMElasticNetRecommender.get_cache_filename(l1_penalty, l2_penalty, topK) + '.npz'
         if cache:
             if os.path.exists(cache_file):
-                print('Using cached model')
+                print('SLIM ElasticNet: using cached model')
                 self.W_sparse = sps.load_npz(cache_file)
                 return
             else:
