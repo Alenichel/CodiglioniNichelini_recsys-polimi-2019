@@ -76,7 +76,8 @@ if __name__ == '__main__':
     urm, icm, ucm, target_users = build_all_matrices()
 
 
-    _ , users = user_segmenter(urm_train=urm, n_groups=10)
+    _groups , users = user_segmenter(urm_train=urm, n_groups=10)
+    exit()
     hybrid = GroupsHybridRecommender(users)
 
     if EXPORT:
