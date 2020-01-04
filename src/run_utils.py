@@ -9,6 +9,7 @@ from tqdm import tqdm, trange
 from cython_modules.leave_one_out import train_test_loo_split as __train_test_loo_split_cython
 from csv_utils import load_csv, export_csv
 from multiprocessing import Pool
+from collections import namedtuple
 
 
 class DataFiles:
@@ -214,6 +215,20 @@ def __encode_values(values):
     le.fit(values)
     return le.transform(values)
 
+group_struct = namedtuple('group_struct', ['in_group', 'not_in_group'])
+def user_segmenter(urm_train, n_groups=10):
+    groups = dict()
+    profile_length = np.ediff1d(urm_train.indptr)
+    group_size = int(profile_length.size/n_groups)
+    sorted_users = np.argsort(profile_length)
+    for group_id in range(n_groups):
+        start_pos = group_id * group_size
+        end_pos = min((group_id + 1) * group_size, len(profile_length))
+        users_in_group = sorted_users[start_pos:end_pos]
+        users_not_in_group_flag = np.isin(sorted_users, users_in_group, invert=True)
+        users_not_in_group = sorted_users[users_not_in_group_flag]
+        groups[group_id] = group_struct(in_group=users_in_group, not_in_group=users_not_in_group)
+    return groups
 
 if __name__ == '__main__':
     from evaluation import evaluate_by_cluster
