@@ -22,8 +22,6 @@ class MergingTechniques(Enum):
     RR = 2
     FREQ = 3
     MEDRANK = 4
-    SLOTS = 5
-
 
 class HybridRecommender:
 
@@ -42,8 +40,6 @@ class HybridRecommender:
             self.recommend = self.recommend_lists_freq
         elif merging_type == MergingTechniques.MEDRANK:
             self.recommend = self.recommend_lists_medrank
-        elif merging_type == MergingTechniques.SLOTS:
-            self.recommend = self.reccomend_excluding_from_cf
         else:
             raise ValueError('merging_type is not an instance of MergingTechnique')
         n_users, n_items = urm_train.shape
@@ -81,19 +77,6 @@ class HybridRecommender:
     def recommend_lists_medrank(self, user_id, at=10, exclude_seen=True):
         recommendations = [recommender.recommend(user_id, at=at, exclude_seen=exclude_seen) for recommender in self.recommenders]
         return medrank(recommendations)[:at]
-
-    def reccomend_excluding_from_cf(self, user_id, at=10, exclude_seen=True, slot_for_cf=6):
-        reccomdations1 = self.recommenders[0].recommend(user_id, at=at, exclude_seen=exclude_seen)
-        reccomdations2 = self.recommenders[1].recommend(user_id, at=at, exclude_seen=exclude_seen)
-        f = reccomdations1[:slot_for_cf]
-        s = reccomdations2
-        l = []
-        for e in f:
-            l = l + [e]
-        for e in s:
-            l = l + [e]
-        l = list(dict.fromkeys(l))
-        return l[:at]
 
 
 def to_optimize(w_mh, w_ucf, w_icbf, w_als):
