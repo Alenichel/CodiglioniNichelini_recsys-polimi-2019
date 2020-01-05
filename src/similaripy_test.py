@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from argparse import ArgumentParser
 import numpy as np
 import similaripy as sim
 from run_utils import set_seed, build_all_matrices, train_test_split, SplitType, export, evaluate
@@ -27,16 +28,16 @@ class SimPyRecommender:
         return ranking[:at]
 
 
-def tuner_cosine():
+def tuner(similarity):
     pbounds = {
-        'k': (1, 100),
-        'shrink': (0, 100)
+        'k': (1, 200),
+        'shrink': (0, 200)
     }
 
     def rec_round(k, shrink):
         k = int(k)
         shrink = int(shrink)
-        rec = SimPyRecommender(sim.cosine)
+        rec = SimPyRecommender(similarity)
         rec.fit(urm_train, k, shrink, verbose=False)
         return evaluate(rec, urm_test, cython=True, verbose=False)['MAP']
 
@@ -45,59 +46,30 @@ def tuner_cosine():
     print(optimizer.max)
 
 
-def tuner_p3alpha():
-    pbounds = {
-        'k': (1, 100),
-        'shrink': (0, 100)
-    }
-
-    def rec_round(k, shrink):
-        k = int(k)
-        shrink = int(shrink)
-        rec = SimPyRecommender(sim.p3alpha)
-        rec.fit(urm_train, k, shrink, verbose=False)
-        return evaluate(rec, urm_test, cython=True, verbose=False)['MAP']
-
-    optimizer = BayesianOptimization(f=rec_round, pbounds=pbounds)
-    optimizer.maximize(init_points=30, n_iter=170)
-    print(optimizer.max)
-
-
-def tuner_rp3beta():
-    pbounds = {
-        'k': (1, 100),
-        'shrink': (0, 100)
-    }
-
-    def rec_round(k, shrink):
-        k = int(k)
-        shrink = int(shrink)
-        rec = SimPyRecommender(sim.rp3beta)
-        rec.fit(urm_train, k, shrink, verbose=False)
-        return evaluate(rec, urm_test, cython=True, verbose=False)['MAP']
-
-    optimizer = BayesianOptimization(f=rec_round, pbounds=pbounds)
-    optimizer.maximize(init_points=30, n_iter=170)
-    print(optimizer.max)
+def parse_args():
+    parser = ArgumentParser()
+    parser.add_argument('similarity', choices=['cosine', 'p3alpha', 'rp3beta'])
+    parser.add_argument('--tune', action='store_true')
+    return parser.parse_args()
 
 
 if __name__ == '__main__':
     set_seed(42)
-    EXPORT = False
+    args = parse_args()
     urm, icm, ucm, target_users = build_all_matrices()
-    if EXPORT:
-        urm_train = urm.tocsr()
-        urm_test = None
+    urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
+
+    similarity = None
+    if args.similarity == 'cosine':
+        similarity = sim.cosine
+    elif args.similarity == 'p3alpha':
+        similarity = sim.p3alpha
+    elif args.similarity == 'rp3beta':
+        similarity = sim.rp3beta
+
+    if args.tune:
+        tuner(similarity)
     else:
-        urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
-
-    tuner_p3alpha()
-    exit()
-
-    rec = SimPyRecommender(sim.cosine)
-    rec.fit(urm_train)
-
-    if EXPORT:
-        export(target_users, rec)
-    else:
+        rec = SimPyRecommender(similarity)
+        rec.fit(urm_train)
         evaluate(rec, urm_test)
