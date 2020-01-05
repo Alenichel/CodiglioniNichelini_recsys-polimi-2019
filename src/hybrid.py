@@ -15,6 +15,7 @@ from model_hybrid import ModelHybridRecommender
 from bayes_opt import BayesianOptimization
 from clusterization import get_clusters
 from clusterized_top_pop import ClusterizedTopPop
+from similaripy_rs import SimPyRecommender
 
 
 class MergingTechniques(Enum):
@@ -110,26 +111,29 @@ def get_hybrid_components(urm_train, icm, ucm, cache=True):
     # ALS
     als = AlternatingLeastSquare()
     als.fit(urm_train, n_factors=896, regularization=99.75, iterations=152, cache=cache)
-    return hybrid_fb, model_hybrid, user_cf, item_cbf, als
+    # RP3BETA
+    rp3beta = SimPyRecommender()
+    rp3beta.fit(urm_train)
+    return hybrid_fb, model_hybrid, user_cf, item_cbf, als, rp3beta
 
 
 def get_hybrid(urm_train, icm, ucm, cache=True):
-    hybrid_fb, model_hybrid, user_cf, item_cbf, als = get_hybrid_components(urm_train, icm, ucm, cache)
-    hybrid = HybridRecommender([model_hybrid, user_cf, item_cbf, als],
+    hybrid_fb, model_hybrid, user_cf, item_cbf, als, rp3beta = get_hybrid_components(urm_train, icm, ucm, cache)
+    hybrid = HybridRecommender([model_hybrid, user_cf, item_cbf, als, rp3beta],
                                urm_train,
                                merging_type=MergingTechniques.WEIGHTS,
-                               weights=[0.4767, 2.199, 2.604, 7.085],
+                               weights=[0.4767, 2.199, 2.604, 7.085, 1.0],
                                fallback_recommender=hybrid_fb)
     return hybrid
 
 
-def to_optimize(w_mh, w_ucf, w_icbf, w_als):
-    hybrid = HybridRecommender([model_hybrid, user_cf, item_cbf, als],
+def to_optimize(w_mh, w_ucf, w_icbf, w_als, w_rp3):
+    hybrid = HybridRecommender([model_hybrid, user_cf, item_cbf, als, rp3beta],
                                urm_train,
                                merging_type=MergingTechniques.WEIGHTS,
-                               weights=[w_mh, w_ucf, w_icbf, w_als],
+                               weights=[w_mh, w_ucf, w_icbf, w_als, w_rp3],
                                fallback_recommender=hybrid_fb)
-    return evaluate_mp(hybrid, [urm_test1, urm_test2, urm_test3], verbose=False, n_processes=1)
+    return evaluate(hybrid, urm_test, verbose=False)
 
 
 if __name__ == '__main__':
@@ -141,30 +145,33 @@ if __name__ == '__main__':
         urm_train = urm.tocsr()
         urm_test = None
     else:
-        ten_percent_test = [9/10, 8/9, 7/8]
+        urm_train, urm_test = train_test_split(urm)
+        '''ten_percent_test = [9/10, 8/9, 7/8]
         fifteen_percent_test = [17/20, 14/17, 11/14]
         # The splitting are done so that each test set is 15% if the original data set
         # and the final train set is 55% of the original data set
         urm_train, urm_test1 = train_test_split(urm, SplitType.PROBABILISTIC, split=fifteen_percent_test[0])
         urm_train, urm_test2 = train_test_split(urm_train, SplitType.PROBABILISTIC, split=fifteen_percent_test[1])
-        urm_train, urm_test3 = train_test_split(urm_train, SplitType.PROBABILISTIC, split=fifteen_percent_test[1])
+        urm_train, urm_test3 = train_test_split(urm_train, SplitType.PROBABILISTIC, split=fifteen_percent_test[1])'''
 
-    hybrid = get_hybrid(urm_train, icm, ucm, cache=not EXPORT)
+    '''hybrid = get_hybrid(urm_train, icm, ucm, cache=not EXPORT)
 
     if EXPORT:
         export(target_users, hybrid)
     else:
-        result = evaluate_mp(hybrid, [urm_test1, urm_test2, urm_test3], verbose=True, n_processes=1)
+        #result = evaluate_mp(hybrid, [urm_test1, urm_test2, urm_test3], verbose=True, n_processes=1)
+        result = evaluate(hybrid, urm_test)
         print(result)
-    exit()
+    exit()'''
 
-    hybrid_fb, model_hybrid, user_cf, item_cbf, als = get_hybrid_components(urm_train, icm, ucm)
+    hybrid_fb, model_hybrid, user_cf, item_cbf, als, rp3beta = get_hybrid_components(urm_train, icm, ucm)
 
     pbounds = {
         'w_mh': (0.5, 1),
         'w_ucf': (2, 2.5),
         'w_icbf': (2.7, 3.2),
-        'w_als': (6.5, 8)
+        'w_als': (6.5, 8),
+        'w_rp3': (0, 10)
     }
 
     optimizer = BayesianOptimization(
@@ -174,7 +181,7 @@ if __name__ == '__main__':
 
     optimizer.maximize(
         init_points=50,
-        n_iter=150,
+        n_iter=250,
     )
 
     print(optimizer.max)

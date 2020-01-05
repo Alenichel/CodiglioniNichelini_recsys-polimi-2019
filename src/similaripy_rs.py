@@ -12,14 +12,14 @@ SIMILARITIES = [sim.rp3beta, sim.asymmetric_cosine, sim.cosine, sim.dice, sim.ja
 
 class SimPyRecommender:
 
-    def __init__(self, similarity):
+    def __init__(self, similarity=sim.rp3beta):
         assert similarity in [sim.rp3beta, sim.asymmetric_cosine, sim.cosine, sim.dice, sim.jaccard, sim.p3alpha, sim.s_plus, sim.tversky]
         self.similarity = similarity
         self.urm_train = None
         self.model = None
         self.recommendations = None
 
-    def fit(self, urm_train, k=4, shrink=34, verbose=True):
+    def fit(self, urm_train, k=10, shrink=42, verbose=True):
         n_users = urm_train.shape[0]
         self.urm_train = urm_train
         self.model = self.similarity(self.urm_train.T, k=k, shrink=shrink, binary=True, verbose=verbose)
