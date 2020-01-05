@@ -26,8 +26,11 @@ class SimPyRecommender:
         self.recommendations = sim.dot_product(self.urm_train, self.model.T, k=10, target_rows=np.arange(n_users),
                                                filter_cols=self.urm_train, verbose=verbose).tocsr()
 
+    def get_scores(self, user_id, exclude_seen=True):
+        return np.array(self.recommendations[user_id].todense()).squeeze()
+
     def recommend(self, user_id, at=10, exclude_seen=True):
-        ranking = np.array(self.recommendations[user_id].todense()).squeeze().argsort()[::-1]
+        ranking = self.get_scores(user_id, exclude_seen).argsort()[::-1]
         return ranking[:at]
 
 
