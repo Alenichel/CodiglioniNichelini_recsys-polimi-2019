@@ -7,6 +7,9 @@ from run_utils import set_seed, build_all_matrices, train_test_split, SplitType,
 from bayes_opt import BayesianOptimization
 
 
+SIMILARITIES = [sim.rp3beta, sim.asymmetric_cosine, sim.cosine, sim.dice, sim.jaccard, sim.p3alpha, sim.s_plus, sim.tversky]
+
+
 class SimPyRecommender:
 
     def __init__(self, similarity):
@@ -48,7 +51,7 @@ def tuner(similarity):
 
 def parse_args():
     parser = ArgumentParser()
-    parser.add_argument('similarity', choices=['cosine', 'p3alpha', 'rp3beta'])
+    parser.add_argument('similarity', choices=['rp3beta', 'asymmetric_cosine', 'cosine', 'dice', 'jaccard', 'p3alpha', 's_plus', 'tversky'])
     parser.add_argument('--tune', action='store_true')
     parser.add_argument('--k', type=int, default=11)
     parser.add_argument('--shrink', type=int, default=14)
@@ -62,13 +65,11 @@ if __name__ == '__main__':
     urm, icm, ucm, target_users = build_all_matrices()
     urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
 
-    similarity = None
-    if args.similarity == 'cosine':
-        similarity = sim.cosine
-    elif args.similarity == 'p3alpha':
-        similarity = sim.p3alpha
-    elif args.similarity == 'rp3beta':
-        similarity = sim.rp3beta
+    similarity_index = ['rp3beta', 'asymmetric_cosine', 'cosine', 'dice', 'jaccard', 'p3alpha', 's_plus', 'tversky'].index(args.similarity)
+    if similarity_index == -1:
+        print('Similarity not recognized')
+        exit(-1)
+    similarity = SIMILARITIES[similarity_index]
 
     if args.tune:
         tuner(similarity)
