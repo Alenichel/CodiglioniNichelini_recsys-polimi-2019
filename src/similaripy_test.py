@@ -45,7 +45,7 @@ def tuner(similarity):
         return evaluate(rec, urm_test, cython=True, verbose=False)['MAP']
 
     optimizer = BayesianOptimization(f=rec_round, pbounds=pbounds)
-    optimizer.maximize(init_points=30, n_iter=170)
+    optimizer.maximize(init_points=30, n_iter=270)
     print(similarity)
     print(optimizer.max)
 
