@@ -6,9 +6,11 @@ from run_utils import set_seed, build_all_matrices, train_test_split, SplitType,
 from bayes_opt import BayesianOptimization
 
 
-class SimPyCosineRecommender:
+class SimPyRecommender:
 
-    def __init__(self):
+    def __init__(self, similarity):
+        assert similarity in [sim.rp3beta, sim.asymmetric_cosine, sim.cosine, sim.dice, sim.jaccard, sim.p3alpha, sim.s_plus, sim.tversky]
+        self.similarity = similarity
         self.urm_train = None
         self.model = None
         self.recommendations = None
@@ -16,7 +18,7 @@ class SimPyCosineRecommender:
     def fit(self, urm_train, k=4, shrink=34, verbose=True):
         n_users = urm_train.shape[0]
         self.urm_train = urm_train
-        self.model = sim.cosine(self.urm_train.T, k=k, shrink=shrink, verbose=verbose)
+        self.model = self.similarity(self.urm_train.T, k=k, shrink=shrink, verbose=verbose)
         self.recommendations = sim.dot_product(self.urm_train, self.model.T, k=10, target_rows=np.arange(n_users),
                                                filter_cols=self.urm_train, verbose=verbose).tocsr()
 
@@ -25,7 +27,7 @@ class SimPyCosineRecommender:
         return ranking[:at]
 
 
-def tuner():
+def tuner_cosine():
     pbounds = {
         'k': (1, 100),
         'shrink': (0, 100)
@@ -34,7 +36,43 @@ def tuner():
     def rec_round(k, shrink):
         k = int(k)
         shrink = int(shrink)
-        rec = SimPyCosineRecommender()
+        rec = SimPyRecommender(sim.cosine)
+        rec.fit(urm_train, k, shrink, verbose=False)
+        return evaluate(rec, urm_test, cython=True, verbose=False)['MAP']
+
+    optimizer = BayesianOptimization(f=rec_round, pbounds=pbounds)
+    optimizer.maximize(init_points=30, n_iter=170)
+    print(optimizer.max)
+
+
+def tuner_p3alpha():
+    pbounds = {
+        'k': (1, 100),
+        'shrink': (0, 100)
+    }
+
+    def rec_round(k, shrink):
+        k = int(k)
+        shrink = int(shrink)
+        rec = SimPyRecommender(sim.p3alpha)
+        rec.fit(urm_train, k, shrink, verbose=False)
+        return evaluate(rec, urm_test, cython=True, verbose=False)['MAP']
+
+    optimizer = BayesianOptimization(f=rec_round, pbounds=pbounds)
+    optimizer.maximize(init_points=30, n_iter=170)
+    print(optimizer.max)
+
+
+def tuner_rp3beta():
+    pbounds = {
+        'k': (1, 100),
+        'shrink': (0, 100)
+    }
+
+    def rec_round(k, shrink):
+        k = int(k)
+        shrink = int(shrink)
+        rec = SimPyRecommender(sim.rp3beta)
         rec.fit(urm_train, k, shrink, verbose=False)
         return evaluate(rec, urm_test, cython=True, verbose=False)['MAP']
 
@@ -53,10 +91,10 @@ if __name__ == '__main__':
     else:
         urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
 
-    tuner()
+    tuner_p3alpha()
     exit()
 
-    rec = SimPyCosineRecommender()
+    rec = SimPyRecommender(sim.cosine)
     rec.fit(urm_train)
 
     if EXPORT:
