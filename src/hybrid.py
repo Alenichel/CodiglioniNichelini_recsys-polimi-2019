@@ -133,7 +133,16 @@ def to_optimize(w_mh, w_ucf, w_icbf, w_als, w_rp3):
                                merging_type=MergingTechniques.WEIGHTS,
                                weights=[w_mh, w_ucf, w_icbf, w_als, w_rp3],
                                fallback_recommender=hybrid_fb)
-    return evaluate(hybrid, urm_test, verbose=False)
+    return evaluate(hybrid, urm_test, verbose=False)['MAP']
+
+
+def to_optimize_fixed(w_rp3):
+    hybrid = HybridRecommender([model_hybrid, user_cf, item_cbf, als, rp3beta],
+                               urm_train,
+                               merging_type=MergingTechniques.WEIGHTS,
+                               weights=[0.4767, 2.199, 2.604, 7.085, w_rp3],
+                               fallback_recommender=hybrid_fb)
+    return evaluate(hybrid, urm_test, verbose=False)['MAP']
 
 
 if __name__ == '__main__':
