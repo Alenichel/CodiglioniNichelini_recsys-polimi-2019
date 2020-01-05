@@ -27,7 +27,7 @@ class SimPyCosineRecommender:
 
 def tuner():
     pbounds = {
-        'k': (0, 100),
+        'k': (1, 100),
         'shrink': (0, 100)
     }
 
