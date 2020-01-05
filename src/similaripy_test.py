@@ -33,8 +33,8 @@ class SimPyRecommender:
 
 def tuner(similarity):
     pbounds = {
-        'k': (1, 50),
-        'shrink': (0, 50)
+        'k': (1, 100),
+        'shrink': (0, 100)
     }
 
     def rec_round(k, shrink):
@@ -46,6 +46,7 @@ def tuner(similarity):
 
     optimizer = BayesianOptimization(f=rec_round, pbounds=pbounds)
     optimizer.maximize(init_points=30, n_iter=170)
+    print(similarity)
     print(optimizer.max)
 
 
@@ -53,8 +54,8 @@ def parse_args():
     parser = ArgumentParser()
     parser.add_argument('similarity', choices=['rp3beta', 'asymmetric_cosine', 'cosine', 'dice', 'jaccard', 'p3alpha', 's_plus', 'tversky'])
     parser.add_argument('--tune', action='store_true')
-    parser.add_argument('--k', type=int, default=11)
-    parser.add_argument('--shrink', type=int, default=14)
+    parser.add_argument('--k', type=int, default=100)
+    parser.add_argument('--shrink', type=int, default=0)
     return parser.parse_args()
 
 
