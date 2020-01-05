@@ -18,7 +18,7 @@ class SimPyRecommender:
     def fit(self, urm_train, k=4, shrink=34, verbose=True):
         n_users = urm_train.shape[0]
         self.urm_train = urm_train
-        self.model = self.similarity(self.urm_train.T, k=k, shrink=shrink, verbose=verbose)
+        self.model = self.similarity(self.urm_train.T, k=k, shrink=shrink, binary=True, verbose=verbose)
         self.recommendations = sim.dot_product(self.urm_train, self.model.T, k=10, target_rows=np.arange(n_users),
                                                filter_cols=self.urm_train, verbose=verbose).tocsr()
 
