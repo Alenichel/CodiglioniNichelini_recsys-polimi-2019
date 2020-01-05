@@ -5,7 +5,6 @@ from run_utils import set_seed, build_all_matrices, build_age_ucm, train_test_sp
 from list_merge import round_robin_list_merger, frequency_list_merger, medrank
 from cf import ItemCFKNNRecommender, UserCFKNNRecommender
 from cbf import ItemCBFKNNRecommender, UserCBFKNNRecommender
-from ucm_top_pop import TopPopUCM
 from cython_modules.SLIM_BPR.SLIM_BPR_CYTHON import SLIM_BPR
 from basic_recommenders import TopPopRecommender
 from enum import Enum
@@ -13,8 +12,6 @@ from slim_elasticnet import SLIMElasticNetRecommender
 from mf import AlternatingLeastSquare
 from model_hybrid import ModelHybridRecommender
 from bayes_opt import BayesianOptimization
-from clusterization import get_clusters
-from clusterized_top_pop import ClusterizedTopPop
 from similaripy_rs import SimPyRecommender
 
 
@@ -23,6 +20,7 @@ class MergingTechniques(Enum):
     RR = 2
     FREQ = 3
     MEDRANK = 4
+
 
 class HybridRecommender:
 
@@ -110,7 +108,7 @@ def get_hybrid_components(urm_train, icm, ucm, cache=True):
     item_cbf.fit(urm_train, icm, 417, 0.3, normalize=True)
     # ALS
     als = AlternatingLeastSquare()
-    als.fit(urm_train, n_factors=896, regularization=99.75, iterations=152, cache=cache)
+    als.fit(urm_train, n_factors=868, regularization=99.75, iterations=152, cache=cache)
     # RP3BETA
     rp3beta = SimPyRecommender()
     rp3beta.fit(urm_train)
@@ -122,7 +120,7 @@ def get_hybrid(urm_train, icm, ucm, cache=True):
     hybrid = HybridRecommender([model_hybrid, user_cf, item_cbf, als, rp3beta],
                                urm_train,
                                merging_type=MergingTechniques.WEIGHTS,
-                               weights=[0.4767, 2.199, 2.604, 7.085, 1.0],
+                               weights=[0.4767, 2.199, 2.604, 7.085, 0.04029],
                                fallback_recommender=hybrid_fb)
     return hybrid
 
@@ -163,15 +161,14 @@ if __name__ == '__main__':
         urm_train, urm_test2 = train_test_split(urm_train, SplitType.PROBABILISTIC, split=fifteen_percent_test[1])
         urm_train, urm_test3 = train_test_split(urm_train, SplitType.PROBABILISTIC, split=fifteen_percent_test[1])'''
 
-    '''hybrid = get_hybrid(urm_train, icm, ucm, cache=not EXPORT)
+    hybrid = get_hybrid(urm_train, icm, ucm, cache=not EXPORT)
 
     if EXPORT:
         export(target_users, hybrid)
     else:
-        #result = evaluate_mp(hybrid, [urm_test1, urm_test2, urm_test3], verbose=True, n_processes=1)
         result = evaluate(hybrid, urm_test)
         print(result)
-    exit()'''
+    exit()
 
     hybrid_fb, model_hybrid, user_cf, item_cbf, als, rp3beta = get_hybrid_components(urm_train, icm, ucm)
 
