@@ -127,7 +127,7 @@ def build_all_matrices():
     return urm, icm, ucm, target_users
 
 
-def train_test_split(urm, split_type=SplitType.LOO, split=0.8):
+def train_test_split(urm, split_type=SplitType.PROBABILISTIC, split=0.8):
     if split_type == SplitType.PROBABILISTIC:
         return __train_test_split(urm, split)
     elif split_type == SplitType.LOO:

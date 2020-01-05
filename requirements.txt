@@ -12,3 +12,4 @@ pandas
 xgboost
 implicit==0.4.0
 lightgbm
+similaripy
