@@ -42,7 +42,7 @@ def tuner(similarity):
         shrink = int(shrink)
         rec = SimPyRecommender(similarity)
         rec.fit(urm_train, k, shrink, verbose=False)
-        return evaluate(rec, urm_test, cython=True, verbose=False)['MAP']
+        return evaluate(rec, urm_test, verbose=False)['MAP']
 
     optimizer = BayesianOptimization(f=rec_round, pbounds=pbounds)
     optimizer.maximize(init_points=30, n_iter=270)
@@ -77,4 +77,4 @@ if __name__ == '__main__':
     else:
         rec = SimPyRecommender(similarity)
         rec.fit(urm_train, args.k, args.shrink)
-        evaluate(rec, urm_test, cython=True)
+        evaluate(rec, urm_test)
