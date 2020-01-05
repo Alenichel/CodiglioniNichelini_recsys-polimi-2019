@@ -50,12 +50,15 @@ def parse_args():
     parser = ArgumentParser()
     parser.add_argument('similarity', choices=['cosine', 'p3alpha', 'rp3beta'])
     parser.add_argument('--tune', action='store_true')
+    parser.add_argument('--k', type=int, default=11)
+    parser.add_argument('--shrink', type=int, default=14)
     return parser.parse_args()
 
 
 if __name__ == '__main__':
     set_seed(42)
     args = parse_args()
+    print(args)
     urm, icm, ucm, target_users = build_all_matrices()
     urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
 
@@ -71,5 +74,5 @@ if __name__ == '__main__':
         tuner(similarity)
     else:
         rec = SimPyRecommender(similarity)
-        rec.fit(urm_train)
+        rec.fit(urm_train, args.k, args.shrink)
         evaluate(rec, urm_test)
