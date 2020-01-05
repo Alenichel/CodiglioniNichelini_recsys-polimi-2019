@@ -30,8 +30,8 @@ class SimPyRecommender:
 
 def tuner(similarity):
     pbounds = {
-        'k': (1, 200),
-        'shrink': (0, 200)
+        'k': (1, 50),
+        'shrink': (0, 50)
     }
 
     def rec_round(k, shrink):
@@ -75,4 +75,4 @@ if __name__ == '__main__':
     else:
         rec = SimPyRecommender(similarity)
         rec.fit(urm_train, args.k, args.shrink)
-        evaluate(rec, urm_test)
+        evaluate(rec, urm_test, cython=True)
