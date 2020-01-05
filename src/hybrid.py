@@ -176,15 +176,15 @@ if __name__ == '__main__':
     hybrid_fb, model_hybrid, user_cf, item_cbf, als, rp3beta = get_hybrid_components(urm_train, icm, ucm)
 
     pbounds = {
-        'w_mh': (0.5, 1),
-        'w_ucf': (2, 2.5),
-        'w_icbf': (2.7, 3.2),
-        'w_als': (6.5, 8),
+        #'w_mh': (0.5, 1),
+        #'w_ucf': (2, 2.5),
+        #'w_icbf': (2.7, 3.2),
+        #'w_als': (6.5, 8),
         'w_rp3': (0, 10)
     }
 
     optimizer = BayesianOptimization(
-        f=to_optimize,
+        f=to_optimize_fixed,
         pbounds=pbounds,
     )
 
