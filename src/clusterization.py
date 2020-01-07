@@ -7,7 +7,7 @@ from sklearn.cluster import KMeans
 from run_utils import DataFiles, build_all_matrices, train_test_split, SplitType, group_struct, get_cold_users
 
 
-def get_clusters(n_cluster=4, max_iter=300):
+def get_clusters(n_cluster=4, max_iter=300, remove_cold=False):
     age_data = pd.read_csv(DataFiles.UCM_AGE)
     age_data = age_data.drop(['data'], axis=1)
     age_data = age_data.rename(columns={'row': 'user_id', 'col': 'age'})
@@ -18,10 +18,11 @@ def get_clusters(n_cluster=4, max_iter=300):
     urm, _, _, _ = build_all_matrices()
     cold_users = get_cold_users(urm)
     to_remove = list()
-    for index, line in data.iterrows():
-        if line['user_id'] not in cold_users:
-            to_remove += [index]
-    data = data.drop(data.index[to_remove])
+    if remove_cold:
+        for index, line in data.iterrows():
+            if line['user_id'] not in cold_users:
+                to_remove += [index]
+        data = data.drop(data.index[to_remove])
     X = data.drop(['user_id'], axis=1)
     kmeans = KMeans(n_clusters=n_cluster, init='k-means++', max_iter=max_iter, n_init=10, random_state=42)
     pred_y = kmeans.fit_predict(X)
