@@ -90,6 +90,9 @@ def tuner():
     urm, icm, ucm, _ = build_all_matrices()
     urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
 
+    profile_lengths = np.ediff1d(urm_train.indptr)
+    warm_users = np.where(profile_lengths != 0)[0]
+
     similarities = ['cosine', 'adjusted', 'asymmetric', 'pearson', 'jaccard', 'dice', 'tversky', 'tanimoto']
 
     pbounds = {
@@ -105,7 +108,7 @@ def tuner():
         similarity = similarities[int(similarity)]
         cbf = UserCBFKNNRecommender()
         cbf.fit(urm_train, ucm, top_k=top_k, shrink=shrink, normalize=normalize, similarity=similarity)
-        return evaluate(cbf, urm_test, cython=True, verbose=False)['MAP']
+        return evaluate(cbf, urm_test, verbose=False, excluded_users=warm_users)['MAP']
 
     optimizer = BayesianOptimization(f=rec_round, pbounds=pbounds)
     optimizer.maximize(init_points=10, n_iter=500)
@@ -116,8 +119,8 @@ def tuner():
 
 if __name__ == '__main__':
     set_seed(42)
-    #tuner()
-    #exit()
+    tuner()
+    exit()
 
     EXPORT = False
     urm, icm, ucm, target_users = build_all_matrices()
