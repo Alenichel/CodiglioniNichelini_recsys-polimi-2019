@@ -4,10 +4,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 from sklearn.cluster import KMeans
-from run_utils import DataFiles, build_all_matrices, train_test_split, SplitType, group_struct
+from run_utils import DataFiles, build_all_matrices, train_test_split, SplitType, group_struct, get_cold_users
 
 
-def get_clusters(n_cluster=10, max_iter=300):
+def get_clusters(n_cluster=4, max_iter=300):
     age_data = pd.read_csv(DataFiles.UCM_AGE)
     age_data = age_data.drop(['data'], axis=1)
     age_data = age_data.rename(columns={'row': 'user_id', 'col': 'age'})
@@ -15,6 +15,13 @@ def get_clusters(n_cluster=10, max_iter=300):
     region_data = region_data.drop(['data'], axis=1)
     region_data = region_data.rename(columns={'row': 'user_id', 'col': 'region'})
     data = pd.merge(age_data, region_data, on='user_id')
+    urm, _, _, _ = build_all_matrices()
+    cold_users = get_cold_users(urm)
+    to_remove = list()
+    for index, line in data.iterrows():
+        if line['user_id'] not in cold_users:
+            to_remove += [index]
+    data = data.drop(data.index[to_remove])
     X = data.drop(['user_id'], axis=1)
     kmeans = KMeans(n_clusters=n_cluster, init='k-means++', max_iter=max_iter, n_init=10, random_state=42)
     pred_y = kmeans.fit_predict(X)
@@ -24,7 +31,6 @@ def get_clusters(n_cluster=10, max_iter=300):
         user_id = data.user_id.iloc[i]
         clusters[cluster_id].append(user_id)
     return clusters
-
 
 def get_clusters_profile_length(urm_train, n_clusters=10, check=True, stats=False):
     users = np.arange(urm_train.shape[0])
@@ -63,4 +69,6 @@ def get_clusters_profile_length(urm_train, n_clusters=10, check=True, stats=Fals
 if __name__ == '__main__':
     urm, _, _, _ = build_all_matrices()
     urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
-    get_clusters_profile_length(urm_train, n_clusters=4, stats=True)
+
+    #get_clusters_profile_length(urm_train, n_clusters=4, check=False, stats=True, only_cold=True)
+    clusters = get_clusters()
