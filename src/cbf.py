@@ -89,14 +89,22 @@ class UserCBFKNNRecommender:
 def tuner():
     urm, icm, ucm, _ = build_all_matrices()
     urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
-    pbounds = {'top_k': (0, 500), 'shrink': (0, 500), 'normalize': (0, 1)}
 
-    def rec_round(top_k, shrink, normalize):
+    similarities = ['cosine', 'adjusted', 'asymmetric', 'pearson', 'jaccard', 'dice', 'tversky', 'tanimoto']
+
+    pbounds = {
+        'top_k': (0, 500),
+        'shrink': (0, 500),
+        'normalize': (0, 1),
+        'similarity': (0, len(similarities))
+    }
+
+    def rec_round(top_k, shrink, normalize, similarity):
         top_k = int(top_k)
-        shrink = int(shrink)
         normalize = normalize < 0.5
-        cbf = ItemCBFKNNRecommender()
-        cbf.fit(urm_train, icm, top_k=top_k, shrink=shrink, normalize=normalize, similarity='tanimoto')
+        similarity = similarities[int(similarity)]
+        cbf = UserCBFKNNRecommender()
+        cbf.fit(urm_train, ucm, top_k=top_k, shrink=shrink, normalize=normalize, similarity=similarity)
         return evaluate(cbf, urm_test, cython=True, verbose=False)['MAP']
 
     optimizer = BayesianOptimization(f=rec_round, pbounds=pbounds)
@@ -108,8 +116,8 @@ def tuner():
 
 if __name__ == '__main__':
     set_seed(42)
-    tuner()
-    exit()
+    #tuner()
+    #exit()
 
     EXPORT = False
     urm, icm, ucm, target_users = build_all_matrices()
@@ -117,9 +125,9 @@ if __name__ == '__main__':
         urm_train = urm.tocsr()
         urm_test = None
     else:
-        urm_train, urm_test = train_test_split(urm, SplitType.LOO_CYTHON)
-    cbf_rec = ItemCBFKNNRecommender()
-    cbf_rec.fit(urm_train, icm)
+        urm_train, urm_test = train_test_split(urm)
+    cbf_rec = UserCBFKNNRecommender()
+    cbf_rec.fit(urm_train, ucm, top_k=496, shrink=0, normalize=False)
     if EXPORT:
         export(target_users, cbf_rec)
     else:

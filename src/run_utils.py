@@ -30,6 +30,7 @@ class SplitType(Enum):
 
 
 def set_seed(seed):
+    print('seed = {0}'.format(seed))
     os.environ['RECSYS_SEED'] = str(seed)
     np.random.seed(seed)
 
@@ -38,7 +39,7 @@ def get_seed():
     env = os.getenv('RECSYS_SEED')
     if env:
         return int(env)
-    return 0
+    return -1
 
 
 def build_urm():

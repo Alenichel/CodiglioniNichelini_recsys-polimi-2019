@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import numpy as np
-from run_utils import set_seed, build_all_matrices, build_age_ucm, train_test_split, evaluate, export, SplitType, evaluate_mp
+from run_utils import set_seed, build_all_matrices, train_test_split, evaluate, export
 from list_merge import round_robin_list_merger, frequency_list_merger, medrank
 from cf import ItemCFKNNRecommender, UserCFKNNRecommender
 from cbf import ItemCBFKNNRecommender, UserCBFKNNRecommender
@@ -12,7 +12,7 @@ from slim_elasticnet import SLIMElasticNetRecommender
 from mf import AlternatingLeastSquare
 from model_hybrid import ModelHybridRecommender
 from bayes_opt import BayesianOptimization
-from similaripy_rs import SimPyRecommender
+#from similaripy_rs import SimPyRecommender
 
 
 class MergingTechniques(Enum):
@@ -78,7 +78,7 @@ class HybridRecommender:
         return medrank(recommendations)[:at]
 
 
-def get_hybrid_components(urm_train, icm, ucm, cache=True):
+def get_fallback(urm_train, ucm):
     # TOP-POP
     top_pop = TopPopRecommender()
     top_pop.fit(urm_train)
@@ -86,19 +86,25 @@ def get_hybrid_components(urm_train, icm, ucm, cache=True):
     user_cbf = UserCBFKNNRecommender()
     user_cbf.fit(urm_train, ucm, top_k=496, shrink=0, normalize=False)
     # HYBRID FALLBACK
-    hybrid_fb = HybridRecommender([top_pop, user_cbf], urm_train, merging_type=MergingTechniques.MEDRANK)
+    hybrid_fb = HybridRecommender([top_pop, user_cbf], urm_train, merging_type=MergingTechniques.FREQ)
+    return hybrid_fb
+
+
+def get_hybrid_components(urm_train, icm, ucm, cache=True):
+    fb = get_fallback(urm_train, ucm)
     # ITEM CF
-    item_cf = ItemCFKNNRecommender(fallback_recommender=hybrid_fb)
+    item_cf = ItemCFKNNRecommender(fallback_recommender=fb)
     item_cf.fit(urm_train, top_k=4, shrink=34, normalize=False, similarity='jaccard')
     # SLIM BPR
-    slim_bpr = SLIM_BPR(fallback_recommender=hybrid_fb)
+    slim_bpr = SLIM_BPR(fallback_recommender=fb)
     slim_bpr.fit(urm_train, epochs=300)
     # SLIM ELASTICNET
-    slim_enet = SLIMElasticNetRecommender(fallback_recommender=hybrid_fb)
+    slim_enet = SLIMElasticNetRecommender(fallback_recommender=fb)
     slim_enet.fit(urm_train, cache=cache)
     # MODEL HYBRID
-    model_hybrid = ModelHybridRecommender([item_cf.w_sparse, slim_bpr.W, slim_enet.W_sparse], [42.82, 535.4, 52.17],
-                                          fallback_recommender=hybrid_fb)
+    model_hybrid = ModelHybridRecommender([item_cf.w_sparse, slim_bpr.W, slim_enet.W_sparse],
+                                          [42.82, 535.4, 52.17],
+                                          fallback_recommender=fb)
     model_hybrid.fit(urm_train, top_k=977)
     # USER CF
     user_cf = UserCFKNNRecommender()
@@ -110,36 +116,27 @@ def get_hybrid_components(urm_train, icm, ucm, cache=True):
     als = AlternatingLeastSquare()
     als.fit(urm_train, n_factors=868, regularization=99.75, iterations=152, cache=cache)
     # RP3BETA
-    rp3beta = SimPyRecommender()
-    rp3beta.fit(urm_train)
-    return hybrid_fb, model_hybrid, user_cf, item_cbf, als, rp3beta
+    # rp3beta = SimPyRecommender()
+    # rp3beta.fit(urm_train)
+    return fb, model_hybrid, user_cf, item_cbf, als  # , rp3beta
 
 
 def get_hybrid(urm_train, icm, ucm, cache=True):
-    hybrid_fb, model_hybrid, user_cf, item_cbf, als, rp3beta = get_hybrid_components(urm_train, icm, ucm, cache)
-    hybrid = HybridRecommender([model_hybrid, user_cf, item_cbf, als, rp3beta],
+    fb, model_hybrid, user_cf, item_cbf, als = get_hybrid_components(urm_train, icm, ucm, cache)
+    hybrid = HybridRecommender([model_hybrid, user_cf, item_cbf, als],  # , rp3beta],
                                urm_train,
                                merging_type=MergingTechniques.WEIGHTS,
-                               weights=[0.4767, 2.199, 2.604, 7.085, 0.04029],
-                               fallback_recommender=hybrid_fb)
+                               weights=[0.4767, 2.199, 2.604, 7.085],  # , 0.04029],
+                               fallback_recommender=fb)
     return hybrid
 
 
-def to_optimize(w_mh, w_ucf, w_icbf, w_als, w_rp3):
-    hybrid = HybridRecommender([model_hybrid, user_cf, item_cbf, als, rp3beta],
+def to_optimize(w_mh, w_ucf, w_icbf, w_als):  # , w_rp3):
+    hybrid = HybridRecommender([model_hybrid, user_cf, item_cbf, als],  # , rp3beta],
                                urm_train,
                                merging_type=MergingTechniques.WEIGHTS,
-                               weights=[w_mh, w_ucf, w_icbf, w_als, w_rp3],
-                               fallback_recommender=hybrid_fb)
-    return evaluate(hybrid, urm_test, verbose=False)['MAP']
-
-
-def to_optimize_fixed(w_rp3):
-    hybrid = HybridRecommender([model_hybrid, user_cf, item_cbf, als, rp3beta],
-                               urm_train,
-                               merging_type=MergingTechniques.WEIGHTS,
-                               weights=[0.4767, 2.199, 2.604, 7.085, w_rp3],
-                               fallback_recommender=hybrid_fb)
+                               weights=[w_mh, w_ucf, w_icbf, w_als],  # , w_rp3],
+                               fallback_recommender=fb)
     return evaluate(hybrid, urm_test, verbose=False)['MAP']
 
 
@@ -147,41 +144,32 @@ if __name__ == '__main__':
     set_seed(42)
     EXPORT = False
     urm, icm, ucm, target_users = build_all_matrices()
-    age_ucm = build_age_ucm(urm.shape[0])
     if EXPORT:
         urm_train = urm.tocsr()
         urm_test = None
     else:
         urm_train, urm_test = train_test_split(urm)
-        '''ten_percent_test = [9/10, 8/9, 7/8]
-        fifteen_percent_test = [17/20, 14/17, 11/14]
-        # The splitting are done so that each test set is 15% if the original data set
-        # and the final train set is 55% of the original data set
-        urm_train, urm_test1 = train_test_split(urm, SplitType.PROBABILISTIC, split=fifteen_percent_test[0])
-        urm_train, urm_test2 = train_test_split(urm_train, SplitType.PROBABILISTIC, split=fifteen_percent_test[1])
-        urm_train, urm_test3 = train_test_split(urm_train, SplitType.PROBABILISTIC, split=fifteen_percent_test[1])'''
 
     hybrid = get_hybrid(urm_train, icm, ucm, cache=not EXPORT)
 
     if EXPORT:
         export(target_users, hybrid)
     else:
-        result = evaluate(hybrid, urm_test)
-        print(result)
+        evaluate(hybrid, urm_test)
     exit()
 
-    hybrid_fb, model_hybrid, user_cf, item_cbf, als, rp3beta = get_hybrid_components(urm_train, icm, ucm)
+    fb, model_hybrid, user_cf, item_cbf, als = get_hybrid_components(urm_train, icm, ucm)
 
     pbounds = {
-        #'w_mh': (0.5, 1),
-        #'w_ucf': (2, 2.5),
-        #'w_icbf': (2.7, 3.2),
-        #'w_als': (6.5, 8),
-        'w_rp3': (0, 10)
+        'w_mh': (0.5, 1),
+        'w_ucf': (2, 2.5),
+        'w_icbf': (2.7, 3.2),
+        'w_als': (6.5, 8),
+        #'w_rp3': (0, 10)
     }
 
     optimizer = BayesianOptimization(
-        f=to_optimize_fixed,
+        f=to_optimize,
         pbounds=pbounds,
     )
 
