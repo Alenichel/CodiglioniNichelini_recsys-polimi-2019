@@ -84,10 +84,10 @@ def get_fallback(urm_train, ucm):
     top_pop.fit(urm_train)
     # USER CBF
     user_cbf = UserCBFKNNRecommender()
-    user_cbf.fit(urm_train, ucm, top_k=496, shrink=0, normalize=False)
+    user_cbf.fit(urm_train, ucm, top_k=492, shrink=211.86, normalize=False, similarity='dice')
     # HYBRID FALLBACK
-    hybrid_fb = HybridRecommender([top_pop, user_cbf], urm_train, merging_type=MergingTechniques.FREQ)
-    return hybrid_fb
+    hybrid_fb = HybridRecommender([user_cbf, top_pop], urm_train, merging_type=MergingTechniques.RR)
+    return user_cbf
 
 
 def get_hybrid_components(urm_train, icm, ucm, cache=True):
@@ -141,8 +141,8 @@ def to_optimize(w_mh, w_ucf, w_icbf, w_als):  # , w_rp3):
 
 
 if __name__ == '__main__':
-    set_seed(42)
-    EXPORT = False
+    #set_seed(42)
+    EXPORT = True
     urm, icm, ucm, target_users = build_all_matrices()
     if EXPORT:
         urm_train = urm.tocsr()

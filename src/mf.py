@@ -36,7 +36,7 @@ class AlternatingLeastSquare:
                 print('{cache_file} not found'.format(cache_file=cache_file))
         sparse_item_user = self.urm.T
         # Initialize the als model and fit it using the sparse item-user matrix
-        model = implicit.als.AlternatingLeastSquares(factors=n_factors, regularization=regularization, iterations=iterations)
+        model = implicit.als.AlternatingLeastSquares(factors=n_factors, regularization=regularization, iterations=iterations, use_gpu=False)
         # Calculate the confidence by multiplying it by alpha.
         data_conf = (sparse_item_user * alpha).astype('double')
         # Fit the model
