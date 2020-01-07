@@ -65,6 +65,15 @@ def clusterize():
     return clusters
 
 
+def get_cold_users(urm_train, return_warm=False):
+    profile_lengths = np.ediff1d(urm_train.indptr)
+    cold_users = np.where(profile_lengths == 0)[0]
+    if return_warm:
+        warm_users = np.where(profile_lengths > 0)[0]
+        return cold_users, warm_users
+    return cold_users
+
+
 def build_icm(n_items):
     # PRICE
     price_icm_items, _, price_icm_values = __load_icm_csv(DataFiles.ICM_PRICE, third_type=float)
