@@ -111,7 +111,7 @@ def tuner():
         return evaluate(cbf, urm_test, verbose=False, excluded_users=warm_users)['MAP']
 
     optimizer = BayesianOptimization(f=rec_round, pbounds=pbounds)
-    optimizer.maximize(init_points=10, n_iter=500)
+    optimizer.maximize(init_points=50, n_iter=250)
     for i, res in enumerate(optimizer.res):
         print("Iteration {}: \n\t{}".format(i, res))
     print(optimizer.max)
