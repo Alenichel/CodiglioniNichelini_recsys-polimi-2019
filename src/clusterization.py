@@ -7,7 +7,7 @@ from sklearn.cluster import KMeans
 from run_utils import DataFiles, build_all_matrices, train_test_split, SplitType, group_struct, get_cold_users
 
 
-def get_clusters(urm_train, n_cluster=4, max_iter=300, remove_warm=False):
+def get_clusters(urm_train, n_cluster=4, max_iter=300, remove_warm=False, return_users_to_cluster=False):
     age_data = pd.read_csv(DataFiles.UCM_AGE)
     age_data = age_data.drop(['data'], axis=1)
     age_data = age_data.rename(columns={'row': 'user_id', 'col': 'age'})
@@ -26,6 +26,7 @@ def get_clusters(urm_train, n_cluster=4, max_iter=300, remove_warm=False):
     kmeans = KMeans(n_clusters=n_cluster, init='k-means++', max_iter=max_iter, n_init=10, random_state=42)
     pred_y = kmeans.fit_predict(X)
     clusters = {cluster: list() for cluster in range(max(pred_y) + 1)}
+    users_to_clusters = dict()
     for i in range(len(data)):
         cluster_id = pred_y[i]
         user_id = data.user_id.iloc[i]
@@ -33,6 +34,10 @@ def get_clusters(urm_train, n_cluster=4, max_iter=300, remove_warm=False):
     for cluster in clusters:
         print('Cluster:         ', cluster)
         print('Number of users: ', len(clusters[cluster]))
+        for user_id in clusters[cluster]:
+            users_to_clusters[user_id] = cluster
+    if return_users_to_cluster:
+        return clusters, users_to_clusters
     return clusters
 
 def get_clusters_profile_length(urm_train, n_clusters=10, check=True, stats=False):
