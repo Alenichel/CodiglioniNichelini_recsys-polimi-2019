@@ -7,7 +7,7 @@ from sklearn.cluster import KMeans
 from run_utils import DataFiles, build_all_matrices, train_test_split, SplitType, group_struct, get_cold_users
 
 
-def get_clusters(n_cluster=4, max_iter=300, remove_cold=False):
+def get_clusters(urm_train, n_cluster=4, max_iter=300, remove_warm=False):
     age_data = pd.read_csv(DataFiles.UCM_AGE)
     age_data = age_data.drop(['data'], axis=1)
     age_data = age_data.rename(columns={'row': 'user_id', 'col': 'age'})
@@ -15,10 +15,9 @@ def get_clusters(n_cluster=4, max_iter=300, remove_cold=False):
     region_data = region_data.drop(['data'], axis=1)
     region_data = region_data.rename(columns={'row': 'user_id', 'col': 'region'})
     data = pd.merge(age_data, region_data, on='user_id')
-    urm, _, _, _ = build_all_matrices()
-    cold_users = get_cold_users(urm)
+    cold_users = get_cold_users(urm_train)
     to_remove = list()
-    if remove_cold:
+    if remove_warm:
         for index, line in data.iterrows():
             if line['user_id'] not in cold_users:
                 to_remove += [index]
@@ -31,6 +30,9 @@ def get_clusters(n_cluster=4, max_iter=300, remove_cold=False):
         cluster_id = pred_y[i]
         user_id = data.user_id.iloc[i]
         clusters[cluster_id].append(user_id)
+    for cluster in clusters:
+        print('Cluster:         ', cluster)
+        print('Number of users: ', len(clusters[cluster]))
     return clusters
 
 def get_clusters_profile_length(urm_train, n_clusters=10, check=True, stats=False):
