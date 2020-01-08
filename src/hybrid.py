@@ -90,8 +90,8 @@ def get_fallback(urm_train, ucm):
     return hybrid_fb
 
 
-def get_hybrid_components(urm_train, icm, ucm, cache=True):
-    fb = get_fallback(urm_train, ucm)
+def get_hybrid_components(urm_train, icm, ucm, cache=True, fallback=True):
+    fb = get_fallback(urm_train, ucm) if fallback else None
     # ITEM CF
     item_cf = ItemCFKNNRecommender(fallback_recommender=fb)
     item_cf.fit(urm_train, top_k=4, shrink=34, normalize=False, similarity='jaccard')
@@ -121,8 +121,8 @@ def get_hybrid_components(urm_train, icm, ucm, cache=True):
     return fb, model_hybrid, user_cf, item_cbf, als  # , rp3beta
 
 
-def get_hybrid(urm_train, icm, ucm, cache=True):
-    fb, model_hybrid, user_cf, item_cbf, als = get_hybrid_components(urm_train, icm, ucm, cache)
+def get_hybrid(urm_train, icm, ucm, cache=True, fallback=True):
+    fb, model_hybrid, user_cf, item_cbf, als = get_hybrid_components(urm_train, icm, ucm, cache, fallback)
     hybrid = HybridRecommender([model_hybrid, user_cf, item_cbf, als],  # , rp3beta],
                                urm_train,
                                merging_type=MergingTechniques.WEIGHTS,
