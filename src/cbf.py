@@ -2,11 +2,19 @@
 
 import numpy as np
 from bayes_opt import BayesianOptimization
+from tqdm import trange
+
 from Base.Similarity.Compute_Similarity_Python import Compute_Similarity_Python
 from basic_recommenders import TopPopRecommender
 from clusterization import get_clusters
-from run_utils import set_seed, build_all_matrices, train_test_split, SplitType, export, evaluate, get_cold_users
+from run_utils import set_seed, build_all_matrices, train_test_split, SplitType, export, evaluate, get_cold_users, \
+    multiple_splitting
 
+
+def get_top_icbf(fb=None):
+    item_cbf = ItemCBFKNNRecommender(fb=None)
+    item_cbf.fit(urm_train, icm, 417, 0.3, normalize=True)
+    return item_cbf
 
 class ItemCBFKNNRecommender:
 
@@ -119,42 +127,59 @@ class GroupUserCBF:
         except KeyError:
             return self.default_cbf.recommend(user_id, at, exclude_seen)
 
+def check_best(bests):
+    assert type(bests) == list
+    _, icm, _, _ = build_all_matrices()
+    trains, tests, _ = multiple_splitting()
+
+    tops = list()
+    cfs = list()
+
+    for best in bests:
+        top_k = int(best['params']['top_k'])
+        shrink = best['params']['shrink']
+        normalize = best['params']['normalize'] < 0.5
+        cumulative_MAP = 0
+        for n in trange(len(trains)):
+            user_cf = ItemCBFKNNRecommender
+            user_cf.fit(trains[n], icm, top_k=top_k, shrink=shrink, normalize=normalize, similarity=similarity)
+            cumulative_MAP += evaluate(user_cf, tests[n], cython=True, verbose=False)['MAP']
+        averageMAP = cumulative_MAP / len(trains)
+        best['AVG_MAP'] = averageMAP
+
+    bests.sort(key=lambda dic: dic['AVG_MAP'], reverse=True)
+    for best in bests:
+        print(best)
+
+    return bests
 
 def tuner():
-    urm, icm, ucm, _ = build_all_matrices()
+    set_seed(42)
+    urm, icm, ucm, target_users = build_all_matrices()
     urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
+    pbounds = {'top_k': (0, 1000), 'shrink': (0, 1000), 'normalize': (0, 1)}
 
-    profile_lengths = np.ediff1d(urm_train.indptr)
-    warm_users = np.where(profile_lengths != 0)[0]
-
-    similarities = ['cosine', 'adjusted', 'asymmetric', 'pearson', 'jaccard', 'dice', 'tversky', 'tanimoto']
-
-    pbounds = {
-        'top_k': (0, 500),
-        'shrink': (0, 500),
-        'normalize': (0, 1),
-        'similarity': (0, len(similarities))
-    }
-
-    def rec_round(top_k, shrink, normalize, similarity):
+    def rec_round(top_k, shrink, normalize):
         top_k = int(top_k)
+        shrink = int(shrink)
         normalize = normalize < 0.5
-        similarity = similarities[int(similarity)]
-        cbf = UserCBFKNNRecommender()
-        cbf.fit(urm_train, ucm, top_k=top_k, shrink=shrink, normalize=normalize, similarity=similarity)
-        return evaluate(cbf, urm_test, verbose=False, excluded_users=warm_users)['MAP']
+        item_cbf = ItemCBFKNNRecommender()
+        item_cbf.fit(urm_train, icm, top_k=top_k, shrink=shrink, normalize=normalize)
+        return evaluate(item_cbf, urm_test, cython=True, verbose=False)['MAP']
 
     optimizer = BayesianOptimization(f=rec_round, pbounds=pbounds)
-    optimizer.maximize(init_points=50, n_iter=250)
-    for i, res in enumerate(optimizer.res):
-        print("Iteration {}: \n\t{}".format(i, res))
-    print(optimizer.max)
-
+    optimizer.probe(
+        params={'top_k': 417, 'shrink': 0.3, 'normalize': 0},
+        lazy=True,
+    )
+    optimizer.maximize(init_points=100, n_iter=300)
+    opt_results = optimizer.res
+    opt_results.sort(key=lambda dic: dic['target'], reverse=True)
+    check_best(opt_results[:10])
 
 if __name__ == '__main__':
-    set_seed(42)
-    #tuner()
-    #exit()
+    tuner()
+    exit()
 
     EXPORT = False
     urm, icm, ucm, target_users = build_all_matrices()
