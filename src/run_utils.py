@@ -246,6 +246,18 @@ def user_segmenter(urm_train, n_groups=10):
         groups[group_id] = group_struct(in_group=users_in_group, not_in_group=users_not_in_group)
     return groups, users
 
+
+def multiple_splitting(seeds=(42, 123, 494, 33, 66)):
+    urm, icm, ucm, target_users = build_all_matrices()
+    trains = list()
+    tests = list()
+    for seed in seeds:
+        set_seed(seed)
+        urm_train, urm_test = train_test_split(urm)
+        trains.append(urm_train)
+        tests.append(urm_test)
+    return trains, tests, seeds
+
 if __name__ == '__main__':
     from evaluation import evaluate_by_cluster
     from cf import ItemCFKNNRecommender
