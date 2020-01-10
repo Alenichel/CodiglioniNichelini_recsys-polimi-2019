@@ -104,6 +104,7 @@ class UserCFKNNRecommender(object):
         scores[user_profile] = -np.inf
         return scores
 
+
 def check_best(bests):
     assert type(bests) == list
     trains, tests, _ = multiple_splitting()

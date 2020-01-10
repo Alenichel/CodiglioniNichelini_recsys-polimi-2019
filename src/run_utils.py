@@ -228,7 +228,10 @@ def __encode_values(values):
     le.fit(values)
     return le.transform(values)
 
+
 group_struct = namedtuple('group_struct', ['in_group', 'not_in_group'])
+
+
 def user_segmenter(urm_train, n_groups=10):
     groups = dict()
     users = dict()
@@ -247,7 +250,7 @@ def user_segmenter(urm_train, n_groups=10):
     return groups, users
 
 
-def multiple_splitting(seeds=(42, 123, 494, 33, 66)):
+def multiple_splitting(seeds=(4951, 893, 2618, 39, 4947)):
     urm, icm, ucm, target_users = build_all_matrices()
     trains = list()
     tests = list()
@@ -257,6 +260,7 @@ def multiple_splitting(seeds=(42, 123, 494, 33, 66)):
         trains.append(urm_train)
         tests.append(urm_test)
     return trains, tests, seeds
+
 
 if __name__ == '__main__':
     from evaluation import evaluate_by_cluster
