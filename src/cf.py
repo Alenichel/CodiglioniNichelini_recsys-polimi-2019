@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import numpy as np
-from run_utils import set_seed, build_all_matrices, train_test_split, SplitType, export, evaluate
+from run_utils import set_seed, build_all_matrices, train_test_split, SplitType, export, evaluate, multiple_splitting
 from helper import TailBoost
 from Base.Similarity.Compute_Similarity_Python import Compute_Similarity_Python
 from basic_recommenders import TopPopRecommender
@@ -104,13 +104,38 @@ class UserCFKNNRecommender(object):
         scores[user_profile] = -np.inf
         return scores
 
+def check_best(bests):
+    assert type(bests) == list
+    trains, tests, _ = multiple_splitting()
+
+    tops = list()
+    cfs = list()
+
+    for best in bests:
+        top_k = best['params']['top_k']
+        shrink = best['params']['shrink']
+        similarity = best['params']['similarity']
+        normalize = best['params']['normalize'] < 0.5
+        cumulative_MAP = 0
+        for n in range(len(trains)):
+            cf = ItemCFKNNRecommender()
+            cf.fit(trains[n], top_k=top_k, shrink=shrink, normalize=normalize, similarity=similarity)
+            cumulative_MAP += evaluate(cf, urm_test, cython=True, verbose=False)['MAP']
+        averageMAP = cumulative_MAP / len(trains)
+        best['AVG_MAP'] = averageMAP
+
+    for best in bests:
+        print(best)
+
+    return bests
+
 
 def tuner():
     set_seed(42)
     urm, icm, ucm, target_users = build_all_matrices()
     urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
-    top_pop = TopPopRecommender()
-    top_pop.fit(urm_train)
+    #top_pop = TopPopRecommender()
+    #top_pop.fit(urm_train)
     similarities = ['jaccard', 'tanimoto']
     pbounds = {'top_k': (0, 1000), 'shrink': (0, 1000), 'normalize': (0, 1), 'similarity': (0, 1)}
 
@@ -119,15 +144,19 @@ def tuner():
         shrink = int(shrink)
         normalize = normalize < 0.5
         similarity = similarities[0] if similarity < 0.5 else similarities[1]
-        cf = ItemCFKNNRecommender(fallback_recommender=top_pop)
+        cf = ItemCFKNNRecommender()
         cf.fit(urm_train, top_k=top_k, shrink=shrink, normalize=normalize, similarity=similarity)
         return evaluate(cf, urm_test, cython=True, verbose=False)['MAP']
 
     optimizer = BayesianOptimization(f=rec_round, pbounds=pbounds)
-    optimizer.maximize(init_points=30, n_iter=300)
-    for i, res in enumerate(optimizer.res):
-        print("Iteration {}: \n\t{}".format(i, res))
-    print(optimizer.max)
+    optimizer.maximize(init_points=5, n_iter=0)
+    #for i, res in enumerate(optimizer.res):
+    #    print("Iteration {}: \n\t{}".format(i, res))
+    #print(optimizer.max)
+
+    opt_results = optimizer.res
+    opt_results.sort(key= lambda dic: dic['target'], reverse=True)
+    check_best(opt_results[:5])
 
 
 if __name__ == '__main__':
