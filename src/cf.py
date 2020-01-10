@@ -121,12 +121,16 @@ def check_best(bests):
         normalize = best['params']['normalize'] < 0.5
         cumulative_MAP = 0
         for n in trange(len(trains)):
-            cf = ItemCFKNNRecommender()
-            cf.fit(trains[n], top_k=top_k, shrink=shrink, normalize=normalize, similarity=similarity)
-            cumulative_MAP += evaluate(cf, tests[n], cython=True, verbose=False)['MAP']
+            #cf = ItemCFKNNRecommender()
+            user_cf = UserCFKNNRecommender()
+            #cf.fit(trains[n], top_k=top_k, shrink=shrink, normalize=normalize, similarity=similarity)
+            user_cf.fit(trains[n], top_k=top_k, shrink=shrink, normalize=normalize, similarity=similarity)
+            #cumulative_MAP += evaluate(cf, tests[n], cython=True, verbose=False)['MAP']
+            cumulative_MAP += evaluate(user_cf, tests[n], cython=True, verbose=False)['MAP']
         averageMAP = cumulative_MAP / len(trains)
         best['AVG_MAP'] = averageMAP
 
+    bests.sort(key=lambda dic: dic['AVG_MAP'], reverse=True)
     for best in bests:
         print(best)
 
@@ -147,19 +151,30 @@ def tuner():
         shrink = int(shrink)
         normalize = normalize < 0.5
         similarity = similarities[0] if similarity < 0.5 else similarities[1]
-        cf = ItemCFKNNRecommender()
-        cf.fit(urm_train, top_k=top_k, shrink=shrink, normalize=normalize, similarity=similarity)
-        return evaluate(cf, urm_test, cython=True, verbose=False)['MAP']
+        #cf = ItemCFKNNRecommender()
+        user_cf = UserCFKNNRecommender()
+        #cf.fit(urm_train, top_k=top_k, shrink=shrink, normalize=normalize, similarity=similarity)
+        user_cf.fit(urm_train, top_k=top_k, shrink=shrink, normalize=normalize, similarity=similarity)
+        #return evaluate(cf, urm_test, cython=True, verbose=False)['MAP']
+        return evaluate(user_cf, urm_test, cython=True, verbose=False)['MAP']
 
     optimizer = BayesianOptimization(f=rec_round, pbounds=pbounds)
-    optimizer.maximize(init_points=2, n_iter=0)
+    #optimizer.probe(
+    #    params={'top_k': 4, 'shrink': 34, 'normalize': 0, 'similarity': 0},
+    #    lazy=True,
+    #)
+    optimizer.probe(
+        params={'top_k': 593, 'shrink': 34, 'normalize': 0, 'similarity': 1},
+        lazy=True,
+    )
+    optimizer.maximize(init_points=100, n_iter=300)
     #for i, res in enumerate(optimizer.res):
     #    print("Iteration {}: \n\t{}".format(i, res))
     #print(optimizer.max)
 
     opt_results = optimizer.res
     opt_results.sort(key= lambda dic: dic['target'], reverse=True)
-    check_best(opt_results[:5])
+    check_best(opt_results[:10])
 
 
 if __name__ == '__main__':
