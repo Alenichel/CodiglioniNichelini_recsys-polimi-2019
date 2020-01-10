@@ -142,7 +142,7 @@ def check_best(bests):
         cumulative_MAP = 0
         for n in trange(len(trains)):
             user_cf = ItemCBFKNNRecommender
-            user_cf.fit(trains[n], icm, top_k=top_k, shrink=shrink, normalize=normalize, similarity=similarity)
+            user_cf.fit(trains[n], icm, top_k=top_k, shrink=shrink, normalize=normalize)
             cumulative_MAP += evaluate(user_cf, tests[n], cython=True, verbose=False)['MAP']
         averageMAP = cumulative_MAP / len(trains)
         best['AVG_MAP'] = averageMAP
