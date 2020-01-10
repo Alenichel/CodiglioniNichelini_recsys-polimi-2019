@@ -247,7 +247,7 @@ def user_segmenter(urm_train, n_groups=10):
     return groups, users
 
 
-def multiple_splitting(seeds=(42, 123, 494, 33, 66)):
+def multiple_splitting(seeds=(711, 123, 494, 33, 666)):
     urm, icm, ucm, target_users = build_all_matrices()
     trains = list()
     tests = list()
