@@ -12,8 +12,12 @@ from pprint import pprint as pp
 from bayes_opt import BayesianOptimization
 
 
-class ItemCFKNNRecommender(object):
+def get_top_icf(fb=None):
+    item_cf = ItemCFKNNRecommender(fallback_recommender=fb)
+    item_cf.fit(urm_train, top_k=4, shrink=34, normalize=False, similarity='jaccard')
+    return item_cf
 
+class ItemCFKNNRecommender(object):
     def __init__(self, use_tail_boost=False, fallback_recommender=None):
         self.urm = None
         self.w_sparse = None
@@ -59,6 +63,10 @@ class ItemCFKNNRecommender(object):
         scores[user_profile] = -np.inf
         return scores
 
+def get_user_cf(fb=None):
+    user_cf = UserCFKNNRecommender()
+    user_cf.fit(urm_train, top_k=593, shrink=4, normalize=False, similarity='tanimoto')
+    return user_cf
 
 class UserCFKNNRecommender(object):
 

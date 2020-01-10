@@ -3,7 +3,7 @@
 import numpy as np
 from run_utils import set_seed, build_all_matrices, train_test_split, evaluate, export
 from list_merge import round_robin_list_merger, frequency_list_merger, medrank
-from cf import ItemCFKNNRecommender, UserCFKNNRecommender
+from cf import ItemCFKNNRecommender, UserCFKNNRecommender, get_top_icf, get_user_cf
 from cbf import ItemCBFKNNRecommender, UserCBFKNNRecommender
 from cython_modules.SLIM_BPR.SLIM_BPR_CYTHON import SLIM_BPR
 from basic_recommenders import TopPopRecommender
@@ -93,8 +93,7 @@ def get_fallback(urm_train, ucm):
 def get_hybrid_components(urm_train, icm, ucm, cache=True, fallback=True):
     fb = get_fallback(urm_train, ucm) if fallback else None
     # ITEM CF
-    item_cf = ItemCFKNNRecommender(fallback_recommender=fb)
-    item_cf.fit(urm_train, top_k=4, shrink=34, normalize=False, similarity='jaccard')
+    item_cf = get_top_icf(fb)
     # SLIM BPR
     slim_bpr = SLIM_BPR(fallback_recommender=fb)
     slim_bpr.fit(urm_train, epochs=300)
@@ -107,8 +106,7 @@ def get_hybrid_components(urm_train, icm, ucm, cache=True, fallback=True):
                                           fallback_recommender=fb)
     model_hybrid.fit(urm_train, top_k=977)
     # USER CF
-    user_cf = UserCFKNNRecommender()
-    user_cf.fit(urm_train, top_k=593, shrink=4, normalize=False, similarity='tanimoto')
+    user_cf = get_user_cf()
     # ITEM CBF
     item_cbf = ItemCBFKNNRecommender()
     item_cbf.fit(urm_train, icm, 417, 0.3, normalize=True)
