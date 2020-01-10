@@ -106,6 +106,7 @@ class UserCFKNNRecommender(object):
 
 
 def check_best(bests):
+    similarities = ['jaccard', 'tanimoto']
     assert type(bests) == list
     trains, tests, _ = multiple_splitting()
 
@@ -116,7 +117,7 @@ def check_best(bests):
         top_k = best['params']['top_k']
         shrink = best['params']['shrink']
         similarity = best['params']['similarity']
-        normalize = best['params']['normalize'] < 0.5
+        normalize = similarities[0] if best['params']['normalize'] < 0.5 else similarities[1]
         cumulative_MAP = 0
         for n in range(len(trains)):
             cf = ItemCFKNNRecommender()
@@ -150,6 +151,10 @@ def tuner():
         return evaluate(cf, urm_test, cython=True, verbose=False)['MAP']
 
     optimizer = BayesianOptimization(f=rec_round, pbounds=pbounds)
+    optimizer.probe(
+        params={'top_k': 4, 'shrink': 34, 'normalize': 0, 'similarity': 0},
+        lazy=True,
+    )
     optimizer.maximize(init_points=5, n_iter=0)
     #for i, res in enumerate(optimizer.res):
     #    print("Iteration {}: \n\t{}".format(i, res))
