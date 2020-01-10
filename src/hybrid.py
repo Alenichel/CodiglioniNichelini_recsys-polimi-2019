@@ -4,7 +4,7 @@ import numpy as np
 from run_utils import set_seed, build_all_matrices, train_test_split, evaluate, export
 from list_merge import round_robin_list_merger, frequency_list_merger, medrank
 from cf import ItemCFKNNRecommender, UserCFKNNRecommender, get_top_icf, get_user_cf
-from cbf import ItemCBFKNNRecommender, UserCBFKNNRecommender
+from cbf import ItemCBFKNNRecommender, UserCBFKNNRecommender, get_top_icbf, get_top_ucbf
 from cython_modules.SLIM_BPR.SLIM_BPR_CYTHON import SLIM_BPR
 from basic_recommenders import TopPopRecommender
 from enum import Enum
@@ -82,9 +82,7 @@ def get_fallback(urm_train, ucm):
     # TOP-POP
     top_pop = TopPopRecommender()
     top_pop.fit(urm_train)
-    # USER CBF
-    user_cbf = UserCBFKNNRecommender()
-    user_cbf.fit(urm_train, ucm, top_k=492, shrink=211.86, normalize=False, similarity='dice')
+    user_cbf = get_top_ucbf()
     # HYBRID FALLBACK
     hybrid_fb = HybridRecommender([user_cbf, top_pop], urm_train, merging_type=MergingTechniques.RR)
     return hybrid_fb
@@ -105,11 +103,8 @@ def get_hybrid_components(urm_train, icm, ucm, cache=True, fallback=True):
                                           [42.82, 535.4, 52.17],
                                           fallback_recommender=fb)
     model_hybrid.fit(urm_train, top_k=977)
-    # USER CF
     user_cf = get_user_cf()
-    # ITEM CBF
-    item_cbf = ItemCBFKNNRecommender()
-    item_cbf.fit(urm_train, icm, 417, 0.3, normalize=True)
+    item_cbf = get_top_icbf()
     # ALS
     als = AlternatingLeastSquare()
     als.fit(urm_train, n_factors=868, regularization=99.75, iterations=152, cache=cache)
