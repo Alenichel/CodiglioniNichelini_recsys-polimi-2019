@@ -129,7 +129,7 @@ class GroupUserCBF:
 
 def check_best(bests):
     assert type(bests) == list
-    _, icm, _, _ = build_all_matrices()
+    _, icm, ucm, _ = build_all_matrices()
     trains, tests, _ = multiple_splitting()
 
     tops = list()
@@ -141,9 +141,12 @@ def check_best(bests):
         normalize = best['params']['normalize'] < 0.5
         cumulative_MAP = 0
         for n in trange(len(trains)):
-            user_cf = ItemCBFKNNRecommender
-            user_cf.fit(trains[n], icm, top_k=top_k, shrink=shrink, normalize=normalize)
-            cumulative_MAP += evaluate(user_cf, tests[n], cython=True, verbose=False)['MAP']
+            #item_cbf = ItemCBFKNNRecommender
+            #item_cbf.fit(trains[n], icm, top_k=top_k, shrink=shrink, normalize=normalize)
+            #cumulative_MAP += evaluate(item_cbf, tests[n], cython=True, verbose=False)['MAP']
+            user_cbf = ItemCBFKNNRecommender
+            user_cbf.fit(trains[n], ucm, top_k=top_k, shrink=shrink, normalize=normalize)
+            cumulative_MAP += evaluate(user_cbf, tests[n], cython=True, verbose=False)['MAP']
         averageMAP = cumulative_MAP / len(trains)
         best['AVG_MAP'] = averageMAP
 
@@ -163,19 +166,27 @@ def tuner():
         top_k = int(top_k)
         shrink = int(shrink)
         normalize = normalize < 0.5
-        item_cbf = ItemCBFKNNRecommender()
-        item_cbf.fit(urm_train, icm, top_k=top_k, shrink=shrink, normalize=normalize)
-        return evaluate(item_cbf, urm_test, cython=True, verbose=False)['MAP']
+        #item_cbf = ItemCBFKNNRecommender()
+        user_cbf = UserCBFKNNRecommender()
+        #item_cbf.fit(urm_train, icm, top_k=top_k, shrink=shrink, normalize=normalize)
+        user_cbf.fit(urm_train, ucm, top_k=top_k, shrink=shrink, normalize=normalize)
+        #return evaluate(item_cbf, urm_test, cython=True, verbose=False)['MAP']
+        return evaluate(user_cbf, urm_test, cython=True, verbose=False)['MAP']
 
     optimizer = BayesianOptimization(f=rec_round, pbounds=pbounds)
+    #optimizer.probe(
+    #    params={'top_k': 417, 'shrink': 0.3, 'normalize': 0},
+    #    lazy=True,
+    #)
     optimizer.probe(
-        params={'top_k': 417, 'shrink': 0.3, 'normalize': 0},
+        params={'top_k': 492, 'shrink': 211.86, 'normalize': 0},
         lazy=True,
     )
     optimizer.maximize(init_points=100, n_iter=300)
     opt_results = optimizer.res
     opt_results.sort(key=lambda dic: dic['target'], reverse=True)
     check_best(opt_results[:10])
+
 
 if __name__ == '__main__':
     tuner()
