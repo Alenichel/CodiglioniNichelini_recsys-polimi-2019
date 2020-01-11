@@ -12,9 +12,12 @@ from pprint import pprint as pp
 from bayes_opt import BayesianOptimization
 
 
-def get_top_icf(urm_train, fb=None):
+def get_item_cf(urm_train, fb=None, generalized=False):
     item_cf = ItemCFKNNRecommender(fallback_recommender=fb)
-    item_cf.fit(urm_train, top_k=4, shrink=34, normalize=False, similarity='jaccard')
+    if generalized:
+        item_cf.fit(urm_train, top_k=4, shrink=34, normalize=False, similarity='jaccard')
+    else:
+        item_cf.fit(urm_train, top_k=4, shrink=34, normalize=False, similarity='jaccard')
     return item_cf
 
 class ItemCFKNNRecommender(object):
