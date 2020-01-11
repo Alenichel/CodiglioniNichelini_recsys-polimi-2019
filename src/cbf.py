@@ -11,10 +11,13 @@ from run_utils import set_seed, build_all_matrices, train_test_split, SplitType,
     multiple_splitting, build_ucm
 
 
-def get_top_icbf(urm_train, fb=None):
+def get_item_cbf(urm_train, generalized=False):
     _, icm, ucm, _ = build_all_matrices()
     item_cbf = ItemCBFKNNRecommender()
-    item_cbf.fit(urm_train, icm, 417, 0.3, normalize=True)
+    if generalized:
+        item_cbf.fit(urm_train, icm, top_k=0, shrink=0, normalize=True)
+    else:
+        item_cbf.fit(urm_train, icm, top_k=572, shrink=466.9, normalize=True)
     return item_cbf
 
 class ItemCBFKNNRecommender:
@@ -60,10 +63,13 @@ class ItemCBFKNNRecommender:
         return scores
 
 
-def get_top_user_CBF(urm_train, fb=None):
+def get_user_cbf(urm_train, fb=None, generalized=False):
     _, icm, ucm, _ = build_all_matrices()
     user_cbf = UserCBFKNNRecommender()
-    user_cbf.fit(urm_train, ucm, top_k=492, shrink=211.86, normalize=False, similarity='dice')
+    if generalized:
+        user_cbf.fit(urm_train, ucm, top_k=768, shrink=1.132, normalize=True, similarity='dice')
+    else:
+        user_cbf.fit(urm_train, ucm, top_k=492, shrink=211.86, normalize=False, similarity='dice')
     return user_cbf
 
 
@@ -115,7 +121,7 @@ class GroupUserCBF:
         assert type(normalize) == list
         assert type(similarity) == list
         assert len(top_k) == len(shrink)
-        self.default_cbf = get_top_user_CBF(urm_train, ucm)
+        self.default_cbf = get_user_cbf(urm_train, ucm)
         self.recommender = list()
         self.clusters, self.user_to_clusters = get_clusters(urm_train, n_cluster=4, max_iter=300, remove_warm=True, return_users_to_cluster=True)
         for n in range(len(self.clusters)):
@@ -143,12 +149,12 @@ def check_best(bests):
         normalize = best['params']['normalize'] < 0.5
         cumulative_MAP = 0
         for n in trange(len(trains)):
-            #item_cbf = ItemCBFKNNRecommender
-            #item_cbf.fit(trains[n], icm, top_k=top_k, shrink=shrink, normalize=normalize)
-            #cumulative_MAP += evaluate(item_cbf, tests[n], cython=True, verbose=False)['MAP']
-            user_cbf = ItemCBFKNNRecommender
-            user_cbf.fit(trains[n], ucm, top_k=top_k, shrink=shrink, normalize=normalize)
-            cumulative_MAP += evaluate(user_cbf, tests[n], cython=True, verbose=False)['MAP']
+            item_cbf = ItemCBFKNNRecommender()
+            item_cbf.fit(trains[n], icm, top_k=top_k, shrink=shrink, normalize=normalize)
+            cumulative_MAP += evaluate(item_cbf, tests[n], cython=True, verbose=False)['MAP']
+            #user_cbf = UserCBFKNNRecommender()
+            #user_cbf.fit(trains[n], ucm, top_k=top_k, shrink=shrink, normalize=normalize)
+            #cumulative_MAP += evaluate(user_cbf, tests[n], cython=True, verbose=False)['MAP']
         averageMAP = cumulative_MAP / len(trains)
         best['AVG_MAP'] = averageMAP
 
