@@ -10,7 +10,7 @@ from basic_recommenders import TopPopRecommender
 from enum import Enum
 from slim_elasticnet import SLIMElasticNetRecommender
 from mf import AlternatingLeastSquare
-from model_hybrid import ModelHybridRecommender
+from model_hybrid import ModelHybridRecommender, get_model_hybrid
 from bayes_opt import BayesianOptimization
 #from similaripy_rs import SimPyRecommender
 
@@ -90,19 +90,7 @@ def get_fallback(urm_train, ucm):
 
 def get_hybrid_components(urm_train, icm, ucm, cache=True, fallback=True):
     fb = get_fallback(urm_train, ucm) if fallback else None
-    # ITEM CF
-    item_cf = get_item_cf(urm_train, fb)
-    # SLIM BPR
-    slim_bpr = SLIM_BPR(fallback_recommender=fb)
-    slim_bpr.fit(urm_train, epochs=300)
-    # SLIM ELASTICNET
-    slim_enet = SLIMElasticNetRecommender(fallback_recommender=fb)
-    slim_enet.fit(urm_train, cache=cache)
-    # MODEL HYBRID
-    model_hybrid = ModelHybridRecommender([item_cf.w_sparse, slim_bpr.W, slim_enet.W_sparse],
-                                          [42.82, 535.4, 52.17],
-                                          fallback_recommender=fb)
-    model_hybrid.fit(urm_train, top_k=977)
+    model_hybrid = get_model_hybrid()
     user_cf = get_user_cf(urm_train)
     item_cbf = get_item_cbf(urm_train)
     # ALS
