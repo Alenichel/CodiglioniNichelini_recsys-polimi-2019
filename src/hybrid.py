@@ -4,7 +4,7 @@ import numpy as np
 from run_utils import set_seed, build_all_matrices, train_test_split, evaluate, export
 from list_merge import round_robin_list_merger, frequency_list_merger, medrank
 from cf import ItemCFKNNRecommender, UserCFKNNRecommender, get_top_icf, get_user_cf
-from cbf import ItemCBFKNNRecommender, UserCBFKNNRecommender, get_top_icbf, get_top_ucbf
+from cbf import ItemCBFKNNRecommender, UserCBFKNNRecommender, get_top_icbf, get_top_user_CBF
 from cython_modules.SLIM_BPR.SLIM_BPR_CYTHON import SLIM_BPR
 from basic_recommenders import TopPopRecommender
 from enum import Enum
@@ -82,7 +82,7 @@ def get_fallback(urm_train, ucm):
     # TOP-POP
     top_pop = TopPopRecommender()
     top_pop.fit(urm_train)
-    user_cbf = get_top_ucbf()
+    user_cbf = get_top_user_CBF(urm_train)
     # HYBRID FALLBACK
     hybrid_fb = HybridRecommender([user_cbf, top_pop], urm_train, merging_type=MergingTechniques.RR)
     return hybrid_fb
@@ -91,7 +91,7 @@ def get_fallback(urm_train, ucm):
 def get_hybrid_components(urm_train, icm, ucm, cache=True, fallback=True):
     fb = get_fallback(urm_train, ucm) if fallback else None
     # ITEM CF
-    item_cf = get_top_icf(fb)
+    item_cf = get_top_icf(urm_train, fb)
     # SLIM BPR
     slim_bpr = SLIM_BPR(fallback_recommender=fb)
     slim_bpr.fit(urm_train, epochs=300)
@@ -103,8 +103,8 @@ def get_hybrid_components(urm_train, icm, ucm, cache=True, fallback=True):
                                           [42.82, 535.4, 52.17],
                                           fallback_recommender=fb)
     model_hybrid.fit(urm_train, top_k=977)
-    user_cf = get_user_cf()
-    item_cbf = get_top_icbf()
+    user_cf = get_user_cf(urm_train)
+    item_cbf = get_top_icbf(urm_train)
     # ALS
     als = AlternatingLeastSquare()
     als.fit(urm_train, n_factors=868, regularization=99.75, iterations=152, cache=cache)
@@ -134,7 +134,7 @@ def to_optimize(w_mh, w_ucf, w_icbf, w_als):  # , w_rp3):
 
 
 if __name__ == '__main__':
-    set_seed(33)
+    set_seed(42)
     EXPORT = False
     urm, icm, ucm, target_users = build_all_matrices()
     if EXPORT:

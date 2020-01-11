@@ -8,11 +8,12 @@ from Base.Similarity.Compute_Similarity_Python import Compute_Similarity_Python
 from basic_recommenders import TopPopRecommender
 from clusterization import get_clusters
 from run_utils import set_seed, build_all_matrices, train_test_split, SplitType, export, evaluate, get_cold_users, \
-    multiple_splitting
+    multiple_splitting, build_ucm
 
 
-def get_top_icbf(fb=None):
-    item_cbf = ItemCBFKNNRecommender(fb=None)
+def get_top_icbf(urm_train, fb=None):
+    _, icm, ucm, _ = build_all_matrices()
+    item_cbf = ItemCBFKNNRecommender()
     item_cbf.fit(urm_train, icm, 417, 0.3, normalize=True)
     return item_cbf
 
@@ -59,7 +60,8 @@ class ItemCBFKNNRecommender:
         return scores
 
 
-def get_top_user_CBF(urm_train, ucm):
+def get_top_user_CBF(urm_train, fb=None):
+    _, icm, ucm, _ = build_all_matrices()
     user_cbf = UserCBFKNNRecommender()
     user_cbf.fit(urm_train, ucm, top_k=492, shrink=211.86, normalize=False, similarity='dice')
     return user_cbf
