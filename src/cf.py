@@ -63,10 +63,15 @@ class ItemCFKNNRecommender(object):
         scores[user_profile] = -np.inf
         return scores
 
-def get_user_cf(urm_train, fb=None):
-    user_cf = UserCFKNNRecommender()
-    user_cf.fit(urm_train, top_k=593, shrink=4, normalize=False, similarity='tanimoto')
+
+def get_user_cf(urm_train, fb=None, generalized=False):
+    user_cf = UserCFKNNRecommender(fallback_recommender=fb)
+    if generalized:
+        user_cf.fit(urm_train, top_k=601, shrink=9.91, similarity='jaccard')
+    else:
+        user_cf.fit(urm_train, top_k=593, shrink=4, normalize=False, similarity='tanimoto')
     return user_cf
+
 
 class UserCFKNNRecommender(object):
 
