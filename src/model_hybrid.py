@@ -2,40 +2,31 @@
 
 import numpy as np
 from tqdm import trange
-
 from Base.Recommender_utils import similarityMatrixTopK
 from run_utils import set_seed, build_all_matrices, train_test_split, SplitType, export, evaluate, multiple_splitting
 from basic_recommenders import TopPopRecommender
-from cf import ItemCFKNNRecommender, get_item_cf
-from cbf import UserCBFKNNRecommender, get_user_cbf
+from cf import get_item_cf
+from cbf import get_user_cbf
 from cython_modules.SLIM_BPR.SLIM_BPR_CYTHON import SLIM_BPR
 from slim_elasticnet import SLIMElasticNetRecommender
 from bayes_opt import BayesianOptimization
 
 
 def get_model_hybrid(urm_train, generalized=False, cache=True):
-    from hybrid import HybridRecommender, MergingTechniques
-    top_pop = TopPopRecommender()
-    top_pop.fit(urm_train)
-    user_cbf = get_user_cbf(urm_train, generalized=generalized)
-    hybrid_fb = HybridRecommender([top_pop, user_cbf], urm_train, merging_type=MergingTechniques.MEDRANK)
-
-    item_cf = get_item_cf(urm_train, fb=hybrid_fb, generalized=generalized)
-    slim_bpr = SLIM_BPR(fallback_recommender=hybrid_fb)
+    item_cf = get_item_cf(urm_train, generalized=generalized)
+    slim_bpr = SLIM_BPR()
     slim_bpr.fit(urm_train, epochs=300)
-    slim_enet = SLIMElasticNetRecommender(fallback_recommender=hybrid_fb)
+    slim_enet = SLIMElasticNetRecommender()
     slim_enet.fit(urm_train, cache=cache)
     if generalized:
         model_hybrid = ModelHybridRecommender([item_cf.w_sparse, slim_bpr.W, slim_enet.W_sparse],
-                                              [28.92, 373.11, 38.67],
-                                              fallback_recommender=hybrid_fb)
+                                              [28.92, 373.11, 38.67])
         model_hybrid.fit(urm_train, top_k=541)
     else:
         model_hybrid = ModelHybridRecommender([item_cf.w_sparse, slim_bpr.W, slim_enet.W_sparse],
-                                              [42.82, 535.4, 52.17],
-                                              fallback_recommender=hybrid_fb)
+                                              [42.82, 535.4, 52.17])
         model_hybrid.fit(urm_train, top_k=977)
-    return  model_hybrid
+    return model_hybrid
 
 
 class ModelHybridRecommender:

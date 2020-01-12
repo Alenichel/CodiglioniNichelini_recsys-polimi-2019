@@ -18,6 +18,7 @@ def get_als(urm_train, fb=None, generalized=True, cache=False):
         als.fit(urm_train, n_factors=868, regularization=99.75, iterations=152, cache=cache)
     return als
 
+
 class AlternatingLeastSquare:
 
     def __init__(self):

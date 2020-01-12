@@ -80,16 +80,16 @@ class HybridRecommender:
         return medrank(recommendations)[:at]
 
 
-def get_fallback(urm_train, generalized=False):
+def get_fallback(urm_train, ucm, generalized=False):
     top_pop = TopPopRecommender()
     top_pop.fit(urm_train)
-    user_cbf = get_user_cbf(urm_train, generalized=generalized)
+    user_cbf = get_user_cbf(urm_train, ucm, generalized=generalized)
     hybrid_fb = HybridRecommender([user_cbf, top_pop], urm_train, merging_type=MergingTechniques.RR)
     return hybrid_fb
 
 
 def get_hybrid_components(urm_train, icm, ucm, cache=True, fallback=True, generalized=False):
-    fb = get_fallback(urm_train, generalized=generalized) if fallback else None
+    fb = get_fallback(urm_train, ucm, generalized=generalized) if fallback else None
     model_hybrid = get_model_hybrid(urm_train, generalized=generalized)
     user_cf = get_user_cf(urm_train, generalized=generalized)
     item_cbf = get_item_cbf(urm_train, generalized=generalized)

@@ -5,20 +5,18 @@ from bayes_opt import BayesianOptimization
 from tqdm import trange
 
 from Base.Similarity.Compute_Similarity_Python import Compute_Similarity_Python
-from basic_recommenders import TopPopRecommender
 from clusterization import get_clusters
-from run_utils import set_seed, build_all_matrices, train_test_split, SplitType, export, evaluate, get_cold_users, \
-    multiple_splitting, build_ucm
+from run_utils import set_seed, build_all_matrices, train_test_split, SplitType, export, evaluate, get_cold_users, multiple_splitting
 
 
-def get_item_cbf(urm_train, generalized=False):
-    _, icm, ucm, _ = build_all_matrices()
+def get_item_cbf(urm_train, icm, generalized=False):
     item_cbf = ItemCBFKNNRecommender()
     if generalized:
         item_cbf.fit(urm_train, icm, top_k=0, shrink=0, normalize=True)
     else:
         item_cbf.fit(urm_train, icm, top_k=572, shrink=466.9, normalize=True)
     return item_cbf
+
 
 class ItemCBFKNNRecommender:
 
@@ -63,8 +61,7 @@ class ItemCBFKNNRecommender:
         return scores
 
 
-def get_user_cbf(urm_train, fb=None, generalized=False):
-    _, icm, ucm, _ = build_all_matrices()
+def get_user_cbf(urm_train, ucm, generalized=False):
     user_cbf = UserCBFKNNRecommender()
     if generalized:
         user_cbf.fit(urm_train, ucm, top_k=768, shrink=1.132, normalize=True, similarity='dice')
@@ -136,6 +133,7 @@ class GroupUserCBF:
         except KeyError:
             return self.default_cbf.recommend(user_id, at, exclude_seen)
 
+
 def check_best(bests):
     assert type(bests) == list
     _, icm, ucm, _ = build_all_matrices()
@@ -164,6 +162,7 @@ def check_best(bests):
         print(best)
 
     return bests
+
 
 def tuner():
     set_seed(42)
