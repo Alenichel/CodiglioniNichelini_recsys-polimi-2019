@@ -4,7 +4,7 @@
 import numpy as np
 import lightgbm as lgb
 import os
-from run_utils import set_seed, build_all_matrices, train_test_split, SplitType, evaluate, export
+from run_utils import set_seed, build_all_matrices, train_test_split, SplitType, evaluate, export, get_seed
 from tqdm import trange
 
 
@@ -30,7 +30,7 @@ class LGBMRecommender:
 
     @staticmethod
     def get_cache_filename():
-        seed = np.random.get_state()[1][0]
+        seed = get_seed()
         return '{seed}'.format(seed=seed)
 
     def fit(self, urm_train, ucm_train, cache=True):
