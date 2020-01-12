@@ -92,7 +92,7 @@ def get_hybrid_components(urm_train, icm, ucm, cache=True, fallback=True, genera
     fb = get_fallback(urm_train, ucm, generalized=generalized) if fallback else None
     model_hybrid = get_model_hybrid(urm_train, generalized=generalized)
     user_cf = get_user_cf(urm_train, generalized=generalized)
-    item_cbf = get_item_cbf(urm_train, generalized=generalized)
+    item_cbf = get_item_cbf(urm_train, icm, generalized=generalized)
     als = get_als(urm_train, generalized=generalized, cache=cache)
     return fb, model_hybrid, user_cf, item_cbf, als
 
@@ -202,6 +202,8 @@ if __name__ == '__main__':
     #exit()
     EXPORT = False
     urm, icm, ucm, target_users = build_all_matrices()
+    urm = urm.tocsr()[3000: 4000, :]
+    ucm = ucm.tocsr()[3000: 4000, :]
     if EXPORT:
         urm_train = urm.tocsr()
         urm_test = None
