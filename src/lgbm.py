@@ -27,15 +27,17 @@ class LGBMRecommender:
             'gpu_use_dp': False
         }
         self.y_pred = None
+        self.urm_train = None
 
-    @staticmethod
-    def get_cache_filename():
+    def get_cache_filename(self):
         seed = get_seed()
-        return '{seed}'.format(seed=seed)
+        urm_train_nnz = self.urm_train.nnz
+        return '{seed}_{urm_train_nnz}'.format(seed=seed, urm_train_nnz=urm_train_nnz)
 
     def fit(self, urm_train, ucm_train, cache=True):
+        self.urm_train = urm_train
         cache_dir = 'models/lgbm/'
-        cache_file = cache_dir + LGBMRecommender.get_cache_filename() + '.npy'
+        cache_file = cache_dir + self.get_cache_filename() + '.npy'
         if cache:
             if os.path.exists(cache_file):
                 print('Using cached model')
@@ -69,6 +71,9 @@ if __name__ == '__main__':
     EXPORT = False
     set_seed(42)
     urm, icm, ucm, target_users = build_all_matrices()
+    # WARNING! This takes only the first thousand users!!!
+    urm = urm.tocsr()[0: 1000, :]
+    ucm = ucm.tocsr()[0: 1000, :]
     urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
 
     rec = LGBMRecommender()
