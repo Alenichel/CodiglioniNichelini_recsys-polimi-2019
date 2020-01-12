@@ -24,10 +24,16 @@ def get_model_hybrid(urm_train, generalized=False):
     slim_bpr.fit(urm_train, epochs=300)
     slim_enet = SLIMElasticNetRecommender(fallback_recommender=hybrid_fb)
     slim_enet.fit(urm_train)
-    model_hybrid = ModelHybridRecommender([item_cf.w_sparse, slim_bpr.W, slim_enet.W_sparse],
-                                          [42.82, 535.4, 52.17],
-                                          fallback_recommender=hybrid_fb)
-    model_hybrid.fit(urm_train, top_k=977)
+    if generalized:
+        model_hybrid = ModelHybridRecommender([item_cf.w_sparse, slim_bpr.W, slim_enet.W_sparse],
+                                              [28.92, 373.11, 38.67],
+                                              fallback_recommender=hybrid_fb)
+        model_hybrid.fit(urm_train, top_k=541)
+    else:
+        model_hybrid = ModelHybridRecommender([item_cf.w_sparse, slim_bpr.W, slim_enet.W_sparse],
+                                              [42.82, 535.4, 52.17],
+                                              fallback_recommender=hybrid_fb)
+        model_hybrid.fit(urm_train, top_k=977)
     return  model_hybrid
 
 
@@ -78,10 +84,30 @@ class ModelHybridRecommender:
 
 def check_best(bests, item_cf, slim_bpr, slim_enet):
     assert type(bests) == list
-    trains, tests, _ = multiple_splitting()
+    trains, tests, seeds = multiple_splitting()
 
-    tops = list()
     cfs = list()
+    sbprs = list()
+    senets = list()
+
+    for n in range(len(seeds)):
+        set_seed(seeds[n])
+        top_pop = TopPopRecommender()
+        top_pop.fit(trains[n])
+        ucb = get_user_cbf(trains[n], generalized=True)
+        fb = HybridRecommender([top_pop, ucb], trains[n], merging_type=MergingTechniques.MEDRANK)
+
+        cfs.append(get_item_cf(trains[n], fb=fb, generalized=True))
+
+        slim_bpr = SLIM_BPR(fallback_recommender=fb)
+        slim_bpr.fit(trains[n], epochs=300)
+        sbprs.append(slim_bpr)
+
+        slim_enet = SLIMElasticNetRecommender(fallback_recommender=fb)
+        slim_enet.fit(trains[n])
+        senets.append(slim_enet)
+
+    set_seed(42)
 
     for best in bests:
         top_k = int(best['params']['top_k'])
@@ -90,7 +116,7 @@ def check_best(bests, item_cf, slim_bpr, slim_enet):
         w_senet = best['params']['w_senet']
         cumulative_MAP = 0
         for n in trange(len(trains)):
-            model_hybrid = ModelHybridRecommender([item_cf.w_sparse, slim_bpr.W, slim_enet.W_sparse],
+            model_hybrid = ModelHybridRecommender([cfs[n].w_sparse, sbprs[n].W, senets[n].W_sparse],
                                                   [w_icf, w_sbpr, w_senet])
             model_hybrid.fit(trains[n], top_k=top_k)
             cumulative_MAP += evaluate(model_hybrid, tests[n], cython=True, verbose=False)['MAP']
