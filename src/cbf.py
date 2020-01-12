@@ -14,7 +14,8 @@ def get_item_cbf(urm_train, icm, generalized=False):
     if generalized:
         item_cbf.fit(urm_train, icm, top_k=0, shrink=0, normalize=True)
     else:
-        item_cbf.fit(urm_train, icm, top_k=572, shrink=466.9, normalize=True)
+        #item_cbf.fit(urm_train, icm, top_k=572, shrink=466.9, normalize=True)
+        item_cbf.fit(urm_train, icm, top_k=417, shrink=0.3, normalize=True)
     return item_cbf
 
 
