@@ -3,7 +3,10 @@
 import numpy as np
 import os
 import implicit
-from run_utils import set_seed, get_seed, build_all_matrices, train_test_split, SplitType, export, evaluate
+from tqdm import trange
+
+from run_utils import set_seed, get_seed, build_all_matrices, train_test_split, SplitType, export, evaluate, \
+    multiple_splitting
 from bayes_opt import BayesianOptimization
 
 
@@ -20,7 +23,7 @@ class AlternatingLeastSquare:
         return '{seed}_{urm_nnz}_{n_factors}_{regularization}_{iterations}_{alpha}'\
             .format(seed=seed, urm_nnz=urm_nnz, n_factors=n_factors, regularization=regularization, iterations=iterations, alpha=alpha)
 
-    def fit(self, urm, n_factors=300, regularization=0.15, iterations=30, alpha=24, verbose=True, cache=True):
+    def fit(self, urm, n_factors=300, regularization=0.15, iterations=30, alpha=24, verbose=True, cache=True, use_gpu=False):
         self.urm = urm
         cache_dir = 'models/als/'
         cache_file = cache_dir + self.get_cache_filename(n_factors, regularization, iterations, alpha) + '.npy'
@@ -36,7 +39,7 @@ class AlternatingLeastSquare:
                 print('{cache_file} not found'.format(cache_file=cache_file))
         sparse_item_user = self.urm.T
         # Initialize the als model and fit it using the sparse item-user matrix
-        model = implicit.als.AlternatingLeastSquares(factors=n_factors, regularization=regularization, iterations=iterations, use_gpu=False)
+        model = implicit.als.AlternatingLeastSquares(factors=n_factors, regularization=regularization, iterations=iterations, use_gpu=use_gpu)
         # Calculate the confidence by multiplying it by alpha.
         data_conf = (sparse_item_user * alpha).astype('double')
         # Fit the model
@@ -65,21 +68,55 @@ class AlternatingLeastSquare:
         return recommended_items[0:at]
 
 
+def check_best(bests):
+    assert type(bests) == list
+    trains, tests, _ = multiple_splitting()
+
+    for best in bests:
+        n_factors = int(best['params']['n_factors'])
+        regularization = float(best['params']['regularization'])
+        iterations = int(best['params']['iterations'])
+        cumulative_MAP = 0
+        for n in trange(len(trains)):
+            als = AlternatingLeastSquare()
+            als.fit(trains[n], n_factors=n_factors, regularization=regularization, iterations=iterations, cache=False, verbose=False, use_gpu=True)
+            cumulative_MAP += evaluate(als, tests[n], cython=True, verbose=False)['MAP']
+        averageMAP = cumulative_MAP / len(trains)
+        best['AVG_MAP'] = averageMAP
+
+    bests.sort(key=lambda dic: dic['AVG_MAP'], reverse=True)
+    for best in bests:
+        print(best)
+    return bests
+
+
 def tuner():
     urm, icm, ucm, _ = build_all_matrices()
     urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
-    pbounds = {'alpha': (10, 50)}
+    pbounds = {'n_factors': (0, 1000),
+               'regularization': (0, 500),
+               'iterations': (0, 500)
+               }
 
-    def rec_round(alpha):
+    def rec_round(n_factors, regularization, iterations):
+        n_factors = int(n_factors)
+        regularization = float(regularization)
+        iterations = int(iterations)
         als = AlternatingLeastSquare()
-        als.fit(urm_train, n_factors=896, regularization=99.75, iterations=152, alpha=alpha, cache=False, verbose=False)
+        als.fit(urm_train, n_factors=n_factors, regularization=regularization, iterations=iterations, cache=False, verbose=True, use_gpu=True)
         return evaluate(als, urm_test, cython=True, verbose=False)['MAP']
 
     optimizer = BayesianOptimization(f=rec_round, pbounds=pbounds)
-    optimizer.maximize(init_points=30, n_iter=100)
-    for i, res in enumerate(optimizer.res):
-        print("Iteration {}: \n\t{}".format(i, res))
-    print(optimizer.max)
+    optimizer.probe(
+        params={'n_factors': 868, 'regularization': 99.75, 'iterations': 152},
+        lazy=True
+    )
+    optimizer.maximize(init_points=30, n_iter=80)
+    #for i, res in enumerate(optimizer.res):
+    #    print("Iteration {}: \n\t{}".format(i, res))
+    opt_results = optimizer.res
+    opt_results.sort(key=lambda dic: dic['target'], reverse=True)
+    check_best(opt_results[:10])
 
 
 if __name__ == '__main__':
