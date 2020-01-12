@@ -89,16 +89,16 @@ def get_fallback(urm_train, generalized=False):
 
 
 def get_hybrid_components(urm_train, icm, ucm, cache=True, fallback=True, generalized=False):
-    fb = get_fallback(urm_train, generalized) if fallback else None
+    fb = get_fallback(urm_train, generalized=generalized) if fallback else None
     model_hybrid = get_model_hybrid(urm_train, generalized=generalized)
     user_cf = get_user_cf(urm_train, generalized=generalized)
     item_cbf = get_item_cbf(urm_train, generalized=generalized)
     als = get_als(urm_train, generalized=generalized, cache=cache)
-    return fb, model_hybrid, user_cf, item_cbf, als  # , rp3beta
+    return fb, model_hybrid, user_cf, item_cbf, als
 
 
 def get_hybrid(urm_train, icm, ucm, cache=True, fallback=True, generalized=False):
-    fb, model_hybrid, user_cf, item_cbf, als = get_hybrid_components(urm_train, icm, ucm, cache, fallback)
+    fb, model_hybrid, user_cf, item_cbf, als = get_hybrid_components(urm_train, icm, ucm, cache, fallback, generalized=generalized)
 
     if generalized:
         pass
