@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 
 import numpy as np
-from run_utils import set_seed, build_all_matrices, train_test_split, evaluate, export
+from tqdm import trange
+
+from run_utils import set_seed, build_all_matrices, train_test_split, evaluate, export, SplitType, multiple_splitting
 from list_merge import round_robin_list_merger, frequency_list_merger, medrank
 from cf import ItemCFKNNRecommender, UserCFKNNRecommender, get_item_cf, get_user_cf
 from cbf import ItemCBFKNNRecommender, UserCBFKNNRecommender, get_item_cbf, get_user_cbf
@@ -9,7 +11,7 @@ from cython_modules.SLIM_BPR.SLIM_BPR_CYTHON import SLIM_BPR
 from basic_recommenders import TopPopRecommender
 from enum import Enum
 from slim_elasticnet import SLIMElasticNetRecommender
-from mf import AlternatingLeastSquare
+from mf import AlternatingLeastSquare, get_als
 from model_hybrid import ModelHybridRecommender, get_model_hybrid
 from bayes_opt import BayesianOptimization
 #from similaripy_rs import SimPyRecommender
@@ -78,51 +80,126 @@ class HybridRecommender:
         return medrank(recommendations)[:at]
 
 
-def get_fallback(urm_train, ucm):
-    # TOP-POP
+def get_fallback(urm_train, generalized=False):
     top_pop = TopPopRecommender()
     top_pop.fit(urm_train)
-    user_cbf = get_user_cbf(urm_train)
-    # HYBRID FALLBACK
+    user_cbf = get_user_cbf(urm_train, generalized=generalized)
     hybrid_fb = HybridRecommender([user_cbf, top_pop], urm_train, merging_type=MergingTechniques.RR)
     return hybrid_fb
 
 
-def get_hybrid_components(urm_train, icm, ucm, cache=True, fallback=True):
-    fb = get_fallback(urm_train, ucm) if fallback else None
-    model_hybrid = get_model_hybrid()
-    user_cf = get_user_cf(urm_train)
-    item_cbf = get_item_cbf(urm_train)
-    # ALS
-    als = AlternatingLeastSquare()
-    als.fit(urm_train, n_factors=868, regularization=99.75, iterations=152, cache=cache)
-    # RP3BETA
-    # rp3beta = SimPyRecommender()
-    # rp3beta.fit(urm_train)
+def get_hybrid_components(urm_train, icm, ucm, cache=True, fallback=True, generalized=False):
+    fb = get_fallback(urm_train, generalized) if fallback else None
+    model_hybrid = get_model_hybrid(urm_train, generalized=generalized)
+    user_cf = get_user_cf(urm_train, generalized=generalized)
+    item_cbf = get_item_cbf(urm_train, generalized=generalized)
+    als = get_als(urm_train, generalized=generalized)
     return fb, model_hybrid, user_cf, item_cbf, als  # , rp3beta
 
 
-def get_hybrid(urm_train, icm, ucm, cache=True, fallback=True):
+def get_hybrid(urm_train, icm, ucm, cache=True, fallback=True, generalized=False):
     fb, model_hybrid, user_cf, item_cbf, als = get_hybrid_components(urm_train, icm, ucm, cache, fallback)
-    hybrid = HybridRecommender([model_hybrid, user_cf, item_cbf, als],  # , rp3beta],
+
+    if generalized:
+        pass
+
+    else:
+        hybrid = HybridRecommender([model_hybrid, user_cf, item_cbf, als],
                                urm_train,
                                merging_type=MergingTechniques.WEIGHTS,
-                               weights=[0.4767, 2.199, 2.604, 7.085],  # , 0.04029],
+                               weights=[0.4767, 2.199, 2.604, 7.085],
                                fallback_recommender=fb)
     return hybrid
 
 
-def to_optimize(w_mh, w_ucf, w_icbf, w_als):  # , w_rp3):
-    hybrid = HybridRecommender([model_hybrid, user_cf, item_cbf, als],  # , rp3beta],
-                               urm_train,
-                               merging_type=MergingTechniques.WEIGHTS,
-                               weights=[w_mh, w_ucf, w_icbf, w_als],  # , w_rp3],
-                               fallback_recommender=fb)
-    return evaluate(hybrid, urm_test, verbose=False)['MAP']
+def check_best(bests):
+    assert type(bests) == list
+    trains, tests, seeds = multiple_splitting()
+
+    fbs = list()
+    model_hybrids = list()
+    ucfs = list()
+    icbfs = list()
+    alss = list()
+
+    for n in range(len(seeds)):
+        fb = get_fallback(urm_train)
+        fbs.append(fb)
+
+        set_seed(seeds[n])
+        model_hybrid = get_model_hybrid(trains[n], generalized=True)
+        model_hybrids.append(model_hybrid)
+
+        ucf = get_user_cf(trains[n], fb=fb, generalized=True)
+        ucfs.append(ucf)
+        icbf = get_item_cbf(trains[n], generalized=True)
+        icbfs.append(icbf)
+        als = get_als(trains[n], fb=fb, generalized=True)
+        alss.append(als)
+
+    set_seed(42)
+    for best in bests:
+        w_mh = best['params']['w_mh']
+        w_ucf = best['params']['w_ucf']
+        w_icbf = best['params']['w_icbf']
+        w_als = best['params']['w_als']
+        cumulative_MAP = 0
+        for n in trange(len(trains)):
+            hybrid = HybridRecommender([model_hybrids[n], ucfs[n], icbfs[n], alss[n]],
+                                       trains[n],
+                                       merging_type=MergingTechniques.WEIGHTS,
+                                       weights=[w_mh, w_ucf, w_icbf, w_als],
+                                       fallback_recommender=fbs[n])
+            cumulative_MAP += evaluate(hybrid, urm_test, verbose=False)['MAP']
+        averageMAP = cumulative_MAP / len(trains)
+        best['AVG_MAP'] = averageMAP
+
+    bests.sort(key=lambda dic: dic['AVG_MAP'], reverse=True)
+    for best in bests:
+        print(best)
+
+    return bests
+
+
+def tuner():
+    urm, icm, ucm, _ = build_all_matrices()
+    urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
+    pbounds = {
+        'w_mh': (0.5, 1),
+        'w_ucf': (2, 2.5),
+        'w_icbf': (2.7, 3.2),
+        'w_als': (6.5, 8),
+    }
+
+    fb = get_fallback(urm_train)
+    model_hybrid = get_model_hybrid(urm_train, generalized=True)
+    user_cf = get_user_cf(urm_train, fb=fb, generalized=True)
+    item_cbf = get_item_cbf(urm_train, generalized=True)
+    als = get_als()
+
+    def to_optimize(w_mh, w_ucf, w_icbf, w_als):
+        hybrid = HybridRecommender([model_hybrid, user_cf, item_cbf, als],
+                                   urm_train,
+                                   merging_type=MergingTechniques.WEIGHTS,
+                                   weights=[w_mh, w_ucf, w_icbf, w_als],
+                                   fallback_recommender=fb)
+        return evaluate(hybrid, urm_test, verbose=False)['MAP']
+
+    optimizer = BayesianOptimization(f=to_optimize, pbounds=pbounds)
+    optimizer.probe(
+        params={'w_mh': 0.4767, 'w_ucf': 2.199, 'w_icbf': 2.604, 'w_als': 7.085},
+        lazy=True
+    )
+    optimizer.maximize(init_points=100, n_iter=200)
+    opt_results = optimizer.res
+    opt_results.sort(key=lambda dic: dic['target'], reverse=True)
+    check_best(opt_results[:10])
 
 
 if __name__ == '__main__':
     set_seed(42)
+    tuner()
+    exit()
     EXPORT = False
     urm, icm, ucm, target_users = build_all_matrices()
     if EXPORT:
@@ -137,26 +214,3 @@ if __name__ == '__main__':
         export(target_users, hybrid)
     else:
         evaluate(hybrid, urm_test)
-    exit()
-
-    fb, model_hybrid, user_cf, item_cbf, als = get_hybrid_components(urm_train, icm, ucm)
-
-    pbounds = {
-        'w_mh': (0.5, 1),
-        'w_ucf': (2, 2.5),
-        'w_icbf': (2.7, 3.2),
-        'w_als': (6.5, 8),
-        #'w_rp3': (0, 10)
-    }
-
-    optimizer = BayesianOptimization(
-        f=to_optimize,
-        pbounds=pbounds,
-    )
-
-    optimizer.maximize(
-        init_points=50,
-        n_iter=250,
-    )
-
-    print(optimizer.max)
