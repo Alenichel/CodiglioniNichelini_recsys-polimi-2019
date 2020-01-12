@@ -14,6 +14,7 @@ from bayes_opt import BayesianOptimization
 
 
 def get_model_hybrid(urm_train, generalized=False):
+    from hybrid import HybridRecommender, MergingTechniques
     top_pop = TopPopRecommender()
     top_pop.fit(urm_train)
     user_cbf = get_user_cbf(urm_train, generalized=generalized)
