@@ -93,9 +93,9 @@ def check_best(bests):
 def tuner():
     urm, icm, ucm, _ = build_all_matrices()
     urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
-    pbounds = {'n_factors': (0, 1000),
-               'regularization': (0, 500),
-               'iterations': (0, 500)
+    pbounds = {'n_factors': (700, 1000),
+               'regularization': (50, 150),
+               'iterations': (50, 200)
                }
 
     def rec_round(n_factors, regularization, iterations):
@@ -111,7 +111,7 @@ def tuner():
         params={'n_factors': 868, 'regularization': 99.75, 'iterations': 152},
         lazy=True
     )
-    optimizer.maximize(init_points=30, n_iter=80)
+    optimizer.maximize(init_points=5, n_iter=50)
     #for i, res in enumerate(optimizer.res):
     #    print("Iteration {}: \n\t{}".format(i, res))
     opt_results = optimizer.res
