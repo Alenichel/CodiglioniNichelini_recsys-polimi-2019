@@ -33,7 +33,7 @@ class LGBMRecommender:
         seed = np.random.get_state()[1][0]
         return '{seed}'.format(seed=seed)
 
-    def fit(self, urm_train, ucm_train, ucm_test, cache=True):
+    def fit(self, urm_train, ucm_train, cache=True):
         cache_dir = 'models/lgbm/'
         cache_file = cache_dir + LGBMRecommender.get_cache_filename() + '.npy'
         if cache:
@@ -45,14 +45,13 @@ class LGBMRecommender:
                 print('{cache_file} not found'.format(cache_file=cache_file))
         urm_train = urm_train.astype(float)
         x_train = ucm_train.tocsr().astype(float)
-        x_test = ucm_test.tocsr().astype(float)
         n_users, n_items = urm.shape
         self.y_pred = np.zeros(urm.shape, dtype=float)
         for item_id in trange(n_items):
             y_train = urm_train[:, item_id].toarray().ravel()
             d_train = lgb.Dataset(x_train, label=y_train)
             clf = lgb.train(self.params, d_train, 100, verbose_eval=False)
-            y_pred = clf.predict(x_test).reshape(n_users)
+            y_pred = clf.predict(x_train).reshape(n_users)
             self.y_pred[:, item_id] = y_pred
         if cache:
             if not os.path.exists(cache_dir):
@@ -71,9 +70,8 @@ if __name__ == '__main__':
     set_seed(42)
     urm, icm, ucm, target_users = build_all_matrices()
     urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
-    ucm_train, ucm_test = train_test_split(ucm, SplitType.PROBABILISTIC)
 
     rec = LGBMRecommender()
-    rec.fit(urm_train, ucm_train, ucm_test)
+    rec.fit(urm_train, ucm)
 
     evaluate(rec, urm_test)
