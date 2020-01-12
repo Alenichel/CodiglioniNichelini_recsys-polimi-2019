@@ -13,7 +13,7 @@ from slim_elasticnet import SLIMElasticNetRecommender
 from bayes_opt import BayesianOptimization
 
 
-def get_model_hybrid(urm_train, generalized=False):
+def get_model_hybrid(urm_train, generalized=False, cache=True):
     from hybrid import HybridRecommender, MergingTechniques
     top_pop = TopPopRecommender()
     top_pop.fit(urm_train)
@@ -24,7 +24,7 @@ def get_model_hybrid(urm_train, generalized=False):
     slim_bpr = SLIM_BPR(fallback_recommender=hybrid_fb)
     slim_bpr.fit(urm_train, epochs=300)
     slim_enet = SLIMElasticNetRecommender(fallback_recommender=hybrid_fb)
-    slim_enet.fit(urm_train)
+    slim_enet.fit(urm_train, cache=cache)
     if generalized:
         model_hybrid = ModelHybridRecommender([item_cf.w_sparse, slim_bpr.W, slim_enet.W_sparse],
                                               [28.92, 373.11, 38.67],

@@ -77,6 +77,6 @@ if __name__ == '__main__':
     urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
 
     rec = LGBMRecommender()
-    rec.fit(urm_train, ucm)
+    rec.fit(urm_train, ucm, cache=False)
 
     evaluate(rec, urm_test)

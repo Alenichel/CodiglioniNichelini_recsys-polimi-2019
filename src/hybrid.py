@@ -93,7 +93,7 @@ def get_hybrid_components(urm_train, icm, ucm, cache=True, fallback=True, genera
     model_hybrid = get_model_hybrid(urm_train, generalized=generalized)
     user_cf = get_user_cf(urm_train, generalized=generalized)
     item_cbf = get_item_cbf(urm_train, generalized=generalized)
-    als = get_als(urm_train, generalized=generalized)
+    als = get_als(urm_train, generalized=generalized, cache=cache)
     return fb, model_hybrid, user_cf, item_cbf, als  # , rp3beta
 
 
@@ -198,8 +198,8 @@ def tuner():
 
 if __name__ == '__main__':
     set_seed(42)
-    tuner()
-    exit()
+    #tuner()
+    #exit()
     EXPORT = False
     urm, icm, ucm, target_users = build_all_matrices()
     if EXPORT:
