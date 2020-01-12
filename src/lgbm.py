@@ -12,19 +12,19 @@ class LGBMRecommender:
 
     def __init__(self):
         self.params = {
-            'learning_rate': 0.001,
-            'boosting_type': 'gbdt',
+            'learning_rate': 0.01,
+            'boosting_type': 'dart',
             'objective': 'binary',
-            'metric': 'binary_logloss',
-            'sub_feature': 0.5,
-            'num_leaves': 100,
-            'min_data': 50,
-            'max_depth': 10,
+            #'metric': 'binary_logloss',
+            #'sub_feature': 0.5,
+            #'num_leaves': 100,
+            #'min_data': 50,
+            #'max_depth': 10,
             'verbose': -1,
             #'num_thread': 6,
-            'device': 'cpu',
-            'max_bin': 200,
-            'gpu_use_dp': False
+            #'device': 'cpu',
+            #'max_bin': 200,
+            #'gpu_use_dp': False
         }
         self.y_pred = None
         self.urm_train = None
@@ -52,7 +52,7 @@ class LGBMRecommender:
         for item_id in trange(n_items):
             y_train = urm_train[:, item_id].toarray().ravel()
             d_train = lgb.Dataset(x_train, label=y_train)
-            clf = lgb.train(self.params, d_train, 300, verbose_eval=False)
+            clf = lgb.train(self.params, d_train, 100, verbose_eval=False)
             y_pred = clf.predict(x_train).reshape(n_users)
             self.y_pred[:, item_id] = y_pred
         if cache:

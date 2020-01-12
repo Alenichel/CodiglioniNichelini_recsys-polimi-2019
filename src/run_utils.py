@@ -74,16 +74,17 @@ def get_cold_users(urm_train, return_warm=False):
     return cold_users
 
 
-def build_icm(n_items):
-    # PRICE
+def build_price_icm(n_items):
     price_icm_items, _, price_icm_values = __load_icm_csv(DataFiles.ICM_PRICE, third_type=float)
     price_icm_values = __encode_values(price_icm_values)
     n_features = max(price_icm_values) + 1
     shape = (n_items, n_features)
     ones = np.ones(len(price_icm_values))
     price_icm = sps.csr_matrix((ones, (price_icm_items, price_icm_values)), shape=shape, dtype=int)
+    return price_icm
 
-    # ASSET
+
+def build_asset_icm(n_items):
     asset_icm_items, _, asset_icm_values = __load_icm_csv(DataFiles.ICM_ASSET, third_type=float)
     asset_icm_values += 1
     asset_icm_values = __encode_values(asset_icm_values)
@@ -91,13 +92,21 @@ def build_icm(n_items):
     shape = (n_items, n_features)
     ones = np.ones(len(asset_icm_values))
     asset_icm = sps.csr_matrix((ones, (asset_icm_items, asset_icm_values)), shape=shape, dtype=int)
+    return asset_icm
 
-    # SUBCLASS
+
+def build_subclass_icm(n_items):
     subclass_icm_items, subclass_icm_features, subclass_icm_values = __load_icm_csv(DataFiles.ICM_SUBCLASS, third_type=float)
     n_features = max(subclass_icm_features) + 1
     shape = (n_items, n_features)
     subclass_icm = sps.csr_matrix((subclass_icm_values, (subclass_icm_items, subclass_icm_features)), shape=shape, dtype=int)
+    return subclass_icm
 
+
+def build_icm(n_items):
+    price_icm = build_price_icm(n_items)
+    asset_icm = build_asset_icm(n_items)
+    subclass_icm = build_subclass_icm(n_items)
     return sps.hstack((price_icm, asset_icm, subclass_icm)).tocsr()
 
 
