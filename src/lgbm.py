@@ -63,8 +63,17 @@ class LGBMRecommender:
 
     def recommend(self, user_id, at=None, exclude_seen=True):
         user_profile = self.y_pred[user_id]
+        if exclude_seen:
+            user_profile = self.filter_seen(user_id, user_profile)
         ranking = user_profile.argsort()[::-1]
         return ranking[:at]
+
+    def filter_seen(self, user_id, scores):
+        start_pos = self.urm_train.indptr[user_id]
+        end_pos = self.urm_train.indptr[user_id + 1]
+        user_profile = self.urm_train.indices[start_pos:end_pos]
+        scores[user_profile] = -np.inf
+        return scores
 
 
 if __name__ == '__main__':
