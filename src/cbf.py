@@ -69,7 +69,8 @@ def get_user_cbf(urm_train, fb=None, generalized=False):
     if generalized:
         user_cbf.fit(urm_train, ucm, top_k=768, shrink=1.132, normalize=True, similarity='dice')
     else:
-        user_cbf.fit(urm_train, ucm, top_k=492, shrink=211.86, normalize=False, similarity='dice')
+        #user_cbf.fit(urm_train, ucm, top_k=492, shrink=211.86, normalize=False, similarity='dice')
+        user_cbf.fit(urm_train, ucm, top_k=496, shrink=0, normalize=False)
     return user_cbf
 
 
