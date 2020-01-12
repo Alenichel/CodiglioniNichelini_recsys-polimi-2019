@@ -150,7 +150,7 @@ def check_best(bests):
                                        merging_type=MergingTechniques.WEIGHTS,
                                        weights=[w_mh, w_ucf, w_icbf, w_als],
                                        fallback_recommender=fbs[n])
-            cumulative_MAP += evaluate(hybrid, urm_test, verbose=False)['MAP']
+            cumulative_MAP += evaluate(hybrid, tests[n], verbose=False)['MAP']
         averageMAP = cumulative_MAP / len(trains)
         best['AVG_MAP'] = averageMAP
 
@@ -173,9 +173,9 @@ def tuner():
 
     fb = get_fallback(urm_train)
     model_hybrid = get_model_hybrid(urm_train, generalized=True)
-    user_cf = get_user_cf(urm_train, fb=fb, generalized=True)
+    user_cf = get_user_cf(urm_train, generalized=True)
     item_cbf = get_item_cbf(urm_train, generalized=True)
-    als = get_als()
+    als = get_als(urm_train, generalized=False)
 
     def to_optimize(w_mh, w_ucf, w_icbf, w_als):
         hybrid = HybridRecommender([model_hybrid, user_cf, item_cbf, als],
@@ -190,7 +190,7 @@ def tuner():
         params={'w_mh': 0.4767, 'w_ucf': 2.199, 'w_icbf': 2.604, 'w_als': 7.085},
         lazy=True
     )
-    optimizer.maximize(init_points=100, n_iter=200)
+    optimizer.maximize(init_points=1, n_iter=0)
     opt_results = optimizer.res
     opt_results.sort(key=lambda dic: dic['target'], reverse=True)
     check_best(opt_results[:10])
