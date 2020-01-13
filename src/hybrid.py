@@ -122,7 +122,7 @@ def hybrid_multiple_evaluation():
     cumulative_MAP = 0
     for n in trange(len(trains)):
         hybrid = get_hybrid(trains[n], icm=icm, ucm=ucm, cache=True, generalized=True)
-        cumulative_MAP = evaluate(hybrid, tests[n], cython=True)
+        cumulative_MAP += evaluate(hybrid, tests[n], verbose=False)['MAP']
     averageMAP = cumulative_MAP / len(trains)
     print('Average MAP: ', str(averageMAP))
 
@@ -214,7 +214,9 @@ if __name__ == '__main__':
     set_seed(42)
     #tuner()
     #exit()
-    EXPORT = False
+    hybrid_multiple_evaluation()
+    exit()
+    EXPORT = True
     urm, icm, ucm, target_users = build_all_matrices()
     if EXPORT:
         urm_train = urm.tocsr()
@@ -222,7 +224,7 @@ if __name__ == '__main__':
     else:
         urm_train, urm_test = train_test_split(urm)
 
-    hybrid = get_hybrid(urm_train, icm, ucm, cache=not EXPORT, generalized=True)
+    hybrid = get_hybrid(urm_train, icm, ucm, cache=False, generalized=True)
 
     if EXPORT:
         export(target_users, hybrid)
