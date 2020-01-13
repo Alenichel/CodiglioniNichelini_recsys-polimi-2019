@@ -108,7 +108,7 @@ class LGBMRecommender:
     def get_cache_filename(self):
         seed = get_seed()
         urm_train_nnz = self.urm_train.nnz
-        return '{seed}_{urm_train_nnz}' \
+        return '{seed}_{urm_train_nnz}_new' \
             .format(seed=seed, urm_train_nnz=urm_train_nnz)
 
     def fit(self):
