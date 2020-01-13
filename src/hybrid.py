@@ -101,7 +101,11 @@ def get_hybrid(urm_train, icm, ucm, cache=True, fallback=True, generalized=False
     fb, model_hybrid, user_cf, item_cbf, als = get_hybrid_components(urm_train, icm, ucm, cache, fallback, generalized=generalized)
 
     if generalized:
-        pass
+        hybrid = HybridRecommender([model_hybrid, user_cf, item_cbf, als],
+                                   urm_train,
+                                   merging_type=MergingTechniques.WEIGHTS,
+                                   weights=[0.7242, 1.629, 0.9316, 8.0133],
+                                   fallback_recommender=fb)
 
     else:
         hybrid = HybridRecommender([model_hybrid, user_cf, item_cbf, als],
@@ -112,7 +116,17 @@ def get_hybrid(urm_train, icm, ucm, cache=True, fallback=True, generalized=False
     return hybrid
 
 
-def check_best(bests):
+def hybrid_multiple_evaluation():
+    _, icm, ucm, _ = build_all_matrices()
+    trains, tests, seeds = multiple_splitting()
+    cumulative_MAP = 0
+    for n in trange(len(trains)):
+        hybrid = get_hybrid(trains[n], icm=icm, ucm=ucm, cache=True, generalized=True)
+        cumulative_MAP = evaluate(hybrid, tests[n], cython=True)
+    averageMAP = cumulative_MAP / len(trains)
+    print('Average MAP: ', str(averageMAP))
+
+def check_best(bests, icm, ucm):
     assert type(bests) == list
     trains, tests, seeds = multiple_splitting()
 
@@ -123,7 +137,7 @@ def check_best(bests):
     alss = list()
 
     for n in range(len(seeds)):
-        fb = get_fallback(urm_train)
+        fb = get_fallback(trains[n], ucm)
         fbs.append(fb)
 
         set_seed(seeds[n])
@@ -132,9 +146,9 @@ def check_best(bests):
 
         ucf = get_user_cf(trains[n], fb=fb, generalized=True)
         ucfs.append(ucf)
-        icbf = get_item_cbf(trains[n], generalized=True)
+        icbf = get_item_cbf(trains[n], icm, generalized=True)
         icbfs.append(icbf)
-        als = get_als(trains[n], fb=fb, generalized=True)
+        als = get_als(trains[n], fb=fb, generalized=True, cache=True)
         alss.append(als)
 
     set_seed(42)
@@ -165,17 +179,17 @@ def tuner():
     urm, icm, ucm, _ = build_all_matrices()
     urm_train, urm_test = train_test_split(urm, SplitType.PROBABILISTIC)
     pbounds = {
-        'w_mh': (0.5, 1),
-        'w_ucf': (2, 2.5),
-        'w_icbf': (2.7, 3.2),
-        'w_als': (6.5, 8),
+        'w_mh': (0, 10),
+        'w_ucf': (0, 10),
+        'w_icbf': (0, 10),
+        'w_als': (0, 10),
     }
 
-    fb = get_fallback(urm_train)
+    fb = get_fallback(urm_train, ucm)
     model_hybrid = get_model_hybrid(urm_train, generalized=True)
     user_cf = get_user_cf(urm_train, generalized=True)
-    item_cbf = get_item_cbf(urm_train, generalized=True)
-    als = get_als(urm_train, generalized=False)
+    item_cbf = get_item_cbf(urm_train, icm, generalized=True)
+    als = get_als(urm_train, generalized=False, cache=True)
 
     def to_optimize(w_mh, w_ucf, w_icbf, w_als):
         hybrid = HybridRecommender([model_hybrid, user_cf, item_cbf, als],
@@ -190,10 +204,10 @@ def tuner():
         params={'w_mh': 0.4767, 'w_ucf': 2.199, 'w_icbf': 2.604, 'w_als': 7.085},
         lazy=True
     )
-    optimizer.maximize(init_points=1, n_iter=0)
+    optimizer.maximize(init_points=100, n_iter=300)
     opt_results = optimizer.res
     opt_results.sort(key=lambda dic: dic['target'], reverse=True)
-    check_best(opt_results[:10])
+    check_best(opt_results[:10], icm, ucm)
 
 
 if __name__ == '__main__':
@@ -202,15 +216,13 @@ if __name__ == '__main__':
     #exit()
     EXPORT = False
     urm, icm, ucm, target_users = build_all_matrices()
-    urm = urm.tocsr()[3000: 4000, :]
-    ucm = ucm.tocsr()[3000: 4000, :]
     if EXPORT:
         urm_train = urm.tocsr()
         urm_test = None
     else:
         urm_train, urm_test = train_test_split(urm)
 
-    hybrid = get_hybrid(urm_train, icm, ucm, cache=not EXPORT)
+    hybrid = get_hybrid(urm_train, icm, ucm, cache=not EXPORT, generalized=True)
 
     if EXPORT:
         export(target_users, hybrid)
